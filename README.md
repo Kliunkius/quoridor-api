@@ -39,7 +39,6 @@ To launch the API, follow these steps:
 # Notes
 
 ## Files Documentation
-## Files Documentation
 
 1. **`.env`**: 
    - This file is for storing environment variables. They can be accessed by importing `dotenv/config` into a file, and then retrieved with `process.env.VARIABLE_NAME`.
