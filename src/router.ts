@@ -1,6 +1,6 @@
 import express, { Request, Response } from 'express';
 
-import { rooms } from './globals';
+import { roomsMap } from './globals';
 
 const router = express.Router();
 
@@ -9,12 +9,7 @@ router.get('/', (req: Request, res: Response) => {
 });
 
 router.get('/rooms', (req: Request, res: Response) => {
-  res.send(rooms);
-});
-
-router.post('/create-room', (req: Request, res: Response) => {
-  rooms[req.body.roomCode] = 'jerma';
-  res.send({ success: true });
+  res.send(roomsMap);
 });
 
 export default router;

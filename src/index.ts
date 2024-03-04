@@ -6,6 +6,7 @@ import { WebSocketServer } from 'ws';
 
 import router from './router';
 import { configureWebSocketServer } from './websocket';
+import { extractQueryParams } from './requestHelpers';
 
 const port = process.env.PORT || 3005;
 
@@ -31,7 +32,10 @@ configureWebSocketServer(wss);
 
 server.on('upgrade', function upgrade(request, socket, head) {
   wss.handleUpgrade(request, socket, head, (ws) => {
-    wss.emit('connection', ws, request);
+    // userId will be provided when reloading the page
+    console.log(request.url);
+    console.log(extractQueryParams(request.url));
+    wss.emit('connection', ws);
   });
 });
 
