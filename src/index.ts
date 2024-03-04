@@ -1,15 +1,40 @@
-import express, { Request, Response } from 'express';
 import 'dotenv/config';
+import express from 'express';
+import bodyParser from 'body-parser';
+import { createServer } from 'http';
+import { WebSocketServer } from 'ws';
 
-const app = express();
+import router from './router';
+import { configureWebSocketServer } from './websocket';
+
 const port = process.env.PORT || 3005;
 
-// Define a route
-app.get('/', (req: Request, res: Response) => {
-  res.send('Gyat damn!');
+const app = express();
+
+// parse application/x-www-form-urlencoded
+app.use(bodyParser.urlencoded({ extended: false }));
+
+// parse application/json
+app.use(bodyParser.json());
+
+app.use(router);
+
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).send('Something brokey!');
 });
 
-// Start the server
-app.listen(port, () => {
+const server = createServer(app);
+const wss = new WebSocketServer({ noServer: true });
+
+configureWebSocketServer(wss);
+
+server.on('upgrade', function upgrade(request, socket, head) {
+  wss.handleUpgrade(request, socket, head, (ws) => {
+    wss.emit('connection', ws, request);
+  });
+});
+
+server.listen(port, () => {
   console.log(`Server is listening at http://localhost:${port}`);
 });
