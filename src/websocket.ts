@@ -61,20 +61,12 @@ const handleMessage = (data, ws: ExtendedWebSocket) => {
       const user = usersMap[ws.userId];
       const room = roomsMap[user.roomCode];
 
-      ws.send(JSON.stringify({ userId: ws.userId, user, room }));
-
-      break;
-    }
-    case MessageTypes.CHECK_STATUS: {
-      const user = usersMap[ws.userId];
-      const room = roomsMap[user.roomCode];
-
-      ws.send(JSON.stringify({ userId: ws.userId, user, room }));
+      ws.send(formatMessage(MessageTypes.CHECK_STATUS, { userId: ws.userId, user, room }));
 
       break;
     }
     case MessageTypes.DEV_INFO: {
-      ws.send(JSON.stringify({ usersMap, roomsMap }));
+      ws.send(formatMessage(MessageTypes.DEV_INFO, { usersMap, roomsMap }));
 
       break;
     }
