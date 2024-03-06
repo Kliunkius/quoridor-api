@@ -4,7 +4,9 @@ export enum MessageTypes {
   JOIN_ROOM,
   CREATE_ROOM,
   CHECK_STATUS,
-  DEV_INFO
+  DEV_INFO,
+  NO_GAME_FOUND,
+  UPDATE_BOARD
 }
 
 export type Message = {

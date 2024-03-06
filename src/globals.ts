@@ -1,8 +1,9 @@
+import { WebSocket } from 'ws';
+
 import { Board } from './boardHelper';
 
 type Room = {
-  player1Id?: string;
-  player2Id?: string;
+  playerMap: Record<string, UserRole>;
   board: Board;
 };
 
@@ -17,5 +18,11 @@ type User = {
   role: UserRole;
 };
 
+type Client = {
+  ws: WebSocket;
+  interval?: NodeJS.Timeout;
+};
+
 export const roomsMap: Record<string, Room> = {};
 export const usersMap: Record<string, User> = {};
+export const clientsMap: Record<string, Client> = {};

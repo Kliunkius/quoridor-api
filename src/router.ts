@@ -1,15 +1,23 @@
 import express, { Request, Response } from 'express';
 
 import { roomsMap } from './globals';
+import { createNewBoard } from './boardHelper';
 
 const router = express.Router();
 
-router.get('/', (req: Request, res: Response) => {
-  res.send('Gyat damn!');
-});
+router.post('/create-room', (req: Request, res: Response) => {
+  console.log('HELLO');
+  const roomCode = req.body.roomCode;
+  console.log('roomCode', req.body);
+  if (!roomCode) {
+    res.status(404);
+    res.send();
+  }
 
-router.get('/rooms', (req: Request, res: Response) => {
-  res.send(roomsMap);
+  const newBoard = createNewBoard();
+  roomsMap[roomCode] = { board: newBoard, playerMap: {} };
+
+  res.send({ success: true });
 });
 
 export default router;
