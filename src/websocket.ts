@@ -1,8 +1,18 @@
 import { WebSocket, WebSocketServer } from 'ws';
 import { v4 as uuidv4 } from 'uuid';
+import _ from 'lodash';
 
-import { UserRole, clientsMap, roomsMap, usersMap } from './globals';
-import { createNewBoard } from './boardHelper';
+import {
+  Coordinates,
+  PLAYER1_STARTING_POSITION,
+  PLAYER2_STARTING_POSITION,
+  SquareType,
+  UserRole,
+  clientsMap,
+  movePiece,
+  roomsMap,
+  usersMap
+} from './boardHelper';
 import { Message, MessageTypes } from './websocketTypes';
 
 type ExtendedWebSocket = WebSocket & {
@@ -18,15 +28,6 @@ const handleMessage = (data, ws: ExtendedWebSocket) => {
   const parsedData = parsedMessage.data;
 
   switch (parsedMessage.type) {
-    // when user
-    case MessageTypes.CONNECT: {
-      const userId: string = uuidv4();
-      ws.userId = userId;
-      clientsMap[userId] = { ws };
-      ws.send(formatMessage(MessageTypes.CONNECT, { userId }));
-
-      break;
-    }
     // when user reloaded the page and already has the userId cookie saved
     case MessageTypes.RECONNECT: {
       const userId: string = parsedData.userId;
@@ -57,44 +58,36 @@ const handleMessage = (data, ws: ExtendedWebSocket) => {
     }
     // when user joins by entering direct url
     case MessageTypes.JOIN_ROOM: {
+      const userId: string = uuidv4();
+      ws.userId = userId;
+      clientsMap[userId] = { ws };
+
       const roomCode = parsedData.roomCode;
 
-      roomsMap[roomCode].playerMap[ws.userId] = UserRole.PLAYER2;
+      const isRoomEmpty = _.isEmpty(roomsMap[roomCode].playerMap);
+      const role = isRoomEmpty ? UserRole.PLAYER1 : UserRole.PLAYER2;
+      const coordinates = isRoomEmpty ? PLAYER1_STARTING_POSITION : PLAYER2_STARTING_POSITION;
+      roomsMap[roomCode].playerMap[userId] = { role, coordinates };
 
-      ws.send(formatMessage(MessageTypes.JOIN_ROOM, { board: roomsMap[roomCode].board, role: UserRole.PLAYER2 }));
-
-      break;
-    }
-    // user will first connect normally, and only then create game
-    case MessageTypes.CREATE_ROOM: {
-      const roomCode = parsedData.roomCode;
-      roomsMap[roomCode] = { board: createNewBoard(), playerMap: { [ws.userId]: UserRole.PLAYER1 } };
-      usersMap[ws.userId] = { playerId: ws.userId, roomCode, role: UserRole.PLAYER1 };
-
-      ws.send(formatMessage(MessageTypes.CREATE_ROOM, { board: roomsMap[roomCode].board, role: UserRole.PLAYER1 }));
-      break;
-    }
-    case MessageTypes.CHECK_STATUS: {
-      const user = usersMap[ws.userId];
-      const room = roomsMap[user.roomCode];
-
-      ws.send(formatMessage(MessageTypes.CHECK_STATUS, { userId: ws.userId, user, room }));
+      ws.send(
+        formatMessage(MessageTypes.JOIN_ROOM, { board: roomsMap[roomCode].board, role: UserRole.PLAYER2, userId })
+      );
 
       break;
     }
-    case MessageTypes.DEV_INFO: {
-      for (const [userId, client] of Object.entries(clientsMap)) {
-        client.ws.send(formatMessage(MessageTypes.DEV_INFO, { userId }));
+    case MessageTypes.MOVE: {
+      const coordinates: Coordinates = parsedData.coordinates;
+      const type: SquareType = parsedData.type;
+      const userId = ws.userId;
+
+      movePiece({ coordinates, type, userId });
+
+      const roomCode = usersMap[userId].roomCode;
+      const clientIds = Object.keys(roomsMap[roomCode].playerMap);
+
+      for (const clientId of clientIds) {
+        ws.send(formatMessage(MessageTypes.MOVE, { board: roomsMap[roomCode].board, role: usersMap[clientId].role }));
       }
-      ws.send(formatMessage(MessageTypes.DEV_INFO, { id: ws.userId }));
-
-      break;
-    }
-    case MessageTypes.UPDATE_BOARD: {
-      for (const [userId, client] of Object.entries(clientsMap)) {
-        client.ws.send(formatMessage(MessageTypes.DEV_INFO, { userId }));
-      }
-      ws.send(formatMessage(MessageTypes.DEV_INFO, { id: ws.userId }));
 
       break;
     }
