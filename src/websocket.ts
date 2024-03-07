@@ -115,6 +115,10 @@ const handleMessage = (data, ws: ExtendedWebSocket) => {
 
 const handleClose = (ws: ExtendedWebSocket) => {
   const userId = ws.userId;
+  if (!userId) {
+    return;
+  }
+
   const deletePlayer = () => {
     const roomCode = usersMap[userId].roomCode;
     delete roomsMap[roomCode].playerMap[userId];
