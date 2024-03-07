@@ -1,7 +1,8 @@
 export enum MessageTypes {
   JOIN_ROOM = 1,
   RECONNECT,
-  MOVE
+  MOVE,
+  ROOM_DELETED
 }
 
 export type Message = {

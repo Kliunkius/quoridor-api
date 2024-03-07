@@ -8,7 +8,6 @@ import {
   PLAYER2_STARTING_POSITION,
   SquareType,
   UserRole,
-  clientsMap,
   movePiece,
   roomsMap,
   usersMap
@@ -28,46 +27,63 @@ const handleMessage = (data, ws: ExtendedWebSocket) => {
   const parsedData = parsedMessage.data;
 
   switch (parsedMessage.type) {
-    // when user reloaded the page and already has the userId cookie saved
     case MessageTypes.RECONNECT: {
+      // userId comes from UI, saved in cookies
       const userId: string = parsedData.userId;
 
-      const client = clientsMap[userId];
-      if (client) {
-        clearTimeout(client.interval);
-        delete client.interval;
+      // get user if he was not yet deleted
+      const pastUser = usersMap[userId];
+
+      // if user is already deleted, send message and that's it
+      if (!pastUser) {
+        ws.send(formatMessage(MessageTypes.ROOM_DELETED, {}));
+        return;
       }
 
-      const user = usersMap[userId];
-      if (!user) {
-        // probably disconnect here
-        break;
+      // get room if it was not yet deleted
+      const pastRoom = roomsMap[pastUser.roomCode];
+
+      // if room is already deleted, send message and that's it
+      if (!pastRoom) {
+        ws.send(formatMessage(MessageTypes.ROOM_DELETED, {}));
+        return;
       }
 
-      const room = roomsMap[user.roomCode];
-      if (!room) {
-        // probably disconnect here
-        break;
-      }
+      // clear interval for deleting room and user after 60 seconds
+      clearTimeout(pastUser.interval);
+      delete pastUser.interval;
 
-      ws.userId = user.playerId;
-      roomsMap[user.roomCode][user.role] = user.playerId;
-      // send message for updating notifying players that reconnect is complete
+      // reassign new websocket instance
+      pastUser.ws = ws;
+      ws.userId = pastUser.userId;
+
+      ws.send(formatMessage(MessageTypes.RECONNECT, { board: pastRoom.board, role: pastUser.role }));
 
       break;
     }
-    // when user joins by entering direct url
     case MessageTypes.JOIN_ROOM: {
       const userId: string = uuidv4();
       ws.userId = userId;
-      clientsMap[userId] = { ws };
 
+      // this gets passed from UI
       const roomCode = parsedData.roomCode;
 
+      // if room is empty, user gets assigned PLAYER1 role
       const isRoomEmpty = _.isEmpty(roomsMap[roomCode].playerMap);
       const role = isRoomEmpty ? UserRole.PLAYER1 : UserRole.PLAYER2;
       const coordinates = isRoomEmpty ? PLAYER1_STARTING_POSITION : PLAYER2_STARTING_POSITION;
+
+      // add player to the users map
+      usersMap[userId] = { ws, userId, roomCode, role };
+
+      // add player to the room
       roomsMap[roomCode].playerMap[userId] = { role, coordinates };
+
+      // user gets placed on the starting square
+      const square = roomsMap[roomCode].board[coordinates.y].squares[coordinates.x];
+      if (square.type === SquareType.Player) {
+        square.playerId = userId;
+      }
 
       ws.send(
         formatMessage(MessageTypes.JOIN_ROOM, { board: roomsMap[roomCode].board, role: UserRole.PLAYER2, userId })
@@ -98,16 +114,23 @@ const handleMessage = (data, ws: ExtendedWebSocket) => {
 };
 
 const handleClose = (ws: ExtendedWebSocket) => {
-  // user has 1 minute to reconnect
-  const interval = setTimeout(() => {
-    delete clientsMap[ws.userId];
-    delete usersMap[ws.userId];
-  }, 1000 * 60);
-  clientsMap[ws.userId].interval = interval;
+  const userId = ws.userId;
+  const deletePlayer = () => {
+    const roomCode = usersMap[userId].roomCode;
+    delete roomsMap[roomCode].playerMap[userId];
+    delete usersMap[userId];
+  };
+
+  // delete user completely after 60 seconds
+  const interval = setTimeout(deletePlayer, 1000 * 60);
+
+  usersMap[userId].interval = interval;
 };
 
 export const configureWebSocketServer = (wss: WebSocketServer) => {
   wss.on('connection', (ws: ExtendedWebSocket) => {
+    console.log('Websocket connected');
+
     ws.on('message', (data) => {
       handleMessage(data, ws);
     });

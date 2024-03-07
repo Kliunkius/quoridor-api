@@ -26,19 +26,15 @@ export type Player = {
 };
 
 type User = {
-  playerId: string;
+  ws: WebSocket;
+  interval?: NodeJS.Timeout;
+  userId: string;
   roomCode: string;
   role: UserRole;
 };
 
-type Client = {
-  ws: WebSocket;
-  interval?: NodeJS.Timeout;
-};
-
 export const roomsMap: Record<string, Room> = {};
 export const usersMap: Record<string, User> = {};
-export const clientsMap: Record<string, Client> = {};
 
 export enum SquareType {
   Player,
@@ -71,7 +67,7 @@ const createRow = (type: RowTypes): BoardRow<SquareType> => {
     squares:
       type === RowTypes.Mixed
         ? array.map((index) => {
-            return index % 2 ? { type: SquareType.Player } : { type: SquareType.Wall, isPlaced: false };
+            return index % 2 === 0 ? { type: SquareType.Player } : { type: SquareType.Wall, isPlaced: false };
           })
         : array.map(() => ({ type: SquareType.Wall, isPlaced: false }))
   };
@@ -81,7 +77,7 @@ const createRow = (type: RowTypes): BoardRow<SquareType> => {
 export const createNewBoard = (): Board => {
   const array = Array.from(Array(BOARD_WIDTH).keys());
   const board = array.reduce((map: Board, index) => {
-    map[index] = index % 2 ? createRow(RowTypes.Mixed) : createRow(RowTypes.Walls);
+    map[index] = index % 2 === 0 ? createRow(RowTypes.Mixed) : createRow(RowTypes.Walls);
     return map;
   }, {});
   return board;
