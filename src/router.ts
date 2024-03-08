@@ -14,7 +14,7 @@ router.post('/create-room', (req: Request, res: Response) => {
   }
 
   const newBoard = createNewBoard();
-  roomsMap[roomCode] = { board: newBoard, playerMap: {} };
+  roomsMap[roomCode] = { board: newBoard, playerMap: {}, playerToMove: '' };
 
   res.send({ success: true });
 });

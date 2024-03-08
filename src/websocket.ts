@@ -4,15 +4,16 @@ import _ from 'lodash';
 
 import {
   Coordinates,
+  MAX_PLAYER_COUNT,
   PLAYER1_STARTING_POSITION,
   PLAYER2_STARTING_POSITION,
   SquareType,
-  UserRole,
   movePiece,
   roomsMap,
   usersMap
 } from './boardHelper';
 import { Message, MessageTypes } from './websocketTypes';
+import { getRoomByUserId, isRoomReady } from './websocketHelper';
 
 type ExtendedWebSocket = WebSocket & {
   userId: string;
@@ -27,6 +28,88 @@ const handleMessage = (data, ws: ExtendedWebSocket) => {
   const parsedData = parsedMessage.data;
 
   switch (parsedMessage.type) {
+    case MessageTypes.JOIN_ROOM: {
+      const userId: string = uuidv4();
+      ws.userId = userId;
+
+      // this gets passed from UI
+      const roomCode: string = parsedData.roomCode;
+      const name = parsedData.name;
+      const room = roomsMap[roomCode];
+      if (_.isEmpty(room)) {
+        ws.send(formatMessage(MessageTypes.ROOM_DELETED, {}));
+        return;
+      }
+
+      const playerCount = Object.keys(room.playerMap).length;
+      if (playerCount === MAX_PLAYER_COUNT) {
+        // we can probably sent message like room full, but for now it has the same functionality as ROOM_DELETED
+        ws.send(formatMessage(MessageTypes.ROOM_DELETED, {}));
+        return;
+      }
+
+      const coordinates = _.isEmpty(room.playerMap) ? PLAYER1_STARTING_POSITION : PLAYER2_STARTING_POSITION;
+
+      // add player to the users map
+      usersMap[userId] = { ws, userId, roomCode };
+
+      // add player to the room
+      roomsMap[roomCode].playerMap[userId] = { coordinates, ready: false, name: userId };
+
+      // user gets placed on the starting square
+      const square = roomsMap[roomCode].board[coordinates.y].squares[coordinates.x];
+      if (square.type === SquareType.Player) {
+        square.playerId = userId;
+      }
+
+      if (_.isEmpty(room.playerToMove)) {
+        room.playerToMove = userId;
+      }
+
+      const clientIds = Object.keys(room.playerMap);
+
+      for (const clientId of clientIds) {
+        const client = usersMap[clientId];
+        let otherPlayer;
+        for (const [playerId, player] of Object.entries(room.playerMap)) {
+          if (playerId === clientId) {
+            continue;
+          }
+          otherPlayer = { ready: player.ready, name: player.name, isYou: playerId === userId };
+        }
+        client.ws.send(
+          formatMessage(MessageTypes.JOIN_ROOM, {
+            userId: clientId,
+            yourTurn: clientId === room.playerToMove,
+            // yourName: room.playerMap[clientId].name,
+            yourName: clientId,
+            otherPlayer
+          })
+        );
+      }
+
+      break;
+    }
+
+    case MessageTypes.READY: {
+      const userId = ws.userId;
+      const room = getRoomByUserId(userId);
+      room.playerMap[userId].ready = true;
+
+      if (!isRoomReady(room)) {
+        return;
+      }
+
+      const clientIds = Object.keys(room.playerMap);
+
+      for (const clientId of clientIds) {
+        const client = usersMap[clientId];
+        client.ws.send(formatMessage(MessageTypes.READY, { board: room.board }));
+      }
+
+      break;
+    }
+
     case MessageTypes.RECONNECT: {
       // userId comes from UI, saved in cookies
       const userId: string = parsedData.userId;
@@ -57,56 +140,39 @@ const handleMessage = (data, ws: ExtendedWebSocket) => {
       pastUser.ws = ws;
       ws.userId = pastUser.userId;
 
-      ws.send(formatMessage(MessageTypes.RECONNECT, { board: pastRoom.board, role: pastUser.role }));
+      ws.send(formatMessage(MessageTypes.RECONNECT, { board: pastRoom.board }));
 
       break;
     }
-    case MessageTypes.JOIN_ROOM: {
-      const userId: string = uuidv4();
-      ws.userId = userId;
 
-      // this gets passed from UI
-      const roomCode = parsedData.roomCode;
-
-      // if room is empty, user gets assigned PLAYER1 role
-      const isRoomEmpty = _.isEmpty(roomsMap[roomCode].playerMap);
-      const role = isRoomEmpty ? UserRole.PLAYER1 : UserRole.PLAYER2;
-      const coordinates = isRoomEmpty ? PLAYER1_STARTING_POSITION : PLAYER2_STARTING_POSITION;
-
-      // add player to the users map
-      usersMap[userId] = { ws, userId, roomCode, role };
-
-      // add player to the room
-      roomsMap[roomCode].playerMap[userId] = { role, coordinates };
-
-      // user gets placed on the starting square
-      const square = roomsMap[roomCode].board[coordinates.y].squares[coordinates.x];
-      if (square.type === SquareType.Player) {
-        square.playerId = userId;
-      }
-
-      ws.send(
-        formatMessage(MessageTypes.JOIN_ROOM, { board: roomsMap[roomCode].board, role: UserRole.PLAYER2, userId })
-      );
-
-      break;
-    }
     case MessageTypes.MOVE: {
       const coordinates: Coordinates = parsedData.coordinates;
       const type: SquareType = parsedData.type;
       const userId = ws.userId;
+      const room = getRoomByUserId(userId);
+
+      if (!isRoomReady(room)) {
+        // probably send some message that player is cheating
+        return;
+      }
 
       movePiece({ coordinates, type, userId });
 
-      const roomCode = usersMap[userId].roomCode;
-      const clientIds = Object.keys(roomsMap[roomCode].playerMap);
+      const clientIds = Object.keys(room.playerMap);
+
+      const newPlayerToMove = _.find(clientIds, (id) => id !== userId);
+      room.playerToMove = newPlayerToMove;
 
       for (const clientId of clientIds) {
-        ws.send(formatMessage(MessageTypes.MOVE, { board: roomsMap[roomCode].board, role: usersMap[clientId].role }));
+        const client = usersMap[clientId];
+        client.ws.send(
+          formatMessage(MessageTypes.MOVE, { board: room.board, yourTurn: clientId === room.playerToMove })
+        );
       }
 
       break;
     }
+
     default: {
       console.log(`Sorry, the type ${parsedMessage.type} is not handled`);
     }
@@ -115,7 +181,8 @@ const handleMessage = (data, ws: ExtendedWebSocket) => {
 
 const handleClose = (ws: ExtendedWebSocket) => {
   const userId = ws.userId;
-  if (!userId) {
+  const user = usersMap[userId];
+  if (!userId || !user) {
     return;
   }
 
@@ -128,7 +195,7 @@ const handleClose = (ws: ExtendedWebSocket) => {
   // delete user completely after 60 seconds
   const interval = setTimeout(deletePlayer, 1000 * 60);
 
-  usersMap[userId].interval = interval;
+  user.interval = interval;
 };
 
 export const configureWebSocketServer = (wss: WebSocketServer) => {

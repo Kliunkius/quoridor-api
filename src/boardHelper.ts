@@ -1,17 +1,15 @@
 import { WebSocket } from 'ws';
 
-type Room = {
+export type Room = {
   playerMap: Record<string, Player>;
+  playerToMove: string;
   board: Board;
 };
 
-export enum UserRole {
-  PLAYER1,
-  PLAYER2
-}
-
 export const PLAYER1_STARTING_POSITION: Coordinates = { x: 8, y: 16 };
 export const PLAYER2_STARTING_POSITION: Coordinates = { x: 8, y: 0 };
+
+export const MAX_PLAYER_COUNT = 2;
 
 export type Coordinates = {
   // coordinateX
@@ -21,8 +19,9 @@ export type Coordinates = {
 };
 
 export type Player = {
-  role: UserRole;
   coordinates: Coordinates;
+  ready: boolean;
+  name: string;
 };
 
 type User = {
@@ -30,7 +29,6 @@ type User = {
   interval?: NodeJS.Timeout;
   userId: string;
   roomCode: string;
-  role: UserRole;
 };
 
 export const roomsMap: Record<string, Room> = {};
@@ -88,7 +86,8 @@ export type Move = { type: SquareType; coordinates: Coordinates; userId: string 
 export const movePiece = ({ type, coordinates, userId }: Move) => {
   if (type === SquareType.Player) {
     const roomCode = usersMap[userId].roomCode;
-    const previousCoordinates = roomsMap[roomCode].playerMap[userId].coordinates;
+    const player = roomsMap[roomCode].playerMap[userId];
+    const previousCoordinates = player.coordinates;
     const square = roomsMap[roomCode].board[previousCoordinates.y].squares[previousCoordinates.x];
     if (square.type !== SquareType.Player) {
       return;
@@ -100,6 +99,8 @@ export const movePiece = ({ type, coordinates, userId }: Move) => {
       return;
     }
     newSquare.playerId = userId;
+
+    player.coordinates = coordinates;
   }
 
   if (type === SquareType.Wall) {
