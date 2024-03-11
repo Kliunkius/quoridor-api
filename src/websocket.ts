@@ -34,7 +34,7 @@ const handleMessage = (data, ws: ExtendedWebSocket) => {
 
       // this gets passed from UI
       const roomCode: string = parsedData.roomCode;
-      const name = parsedData.name;
+      // const name = parsedData.name;
       const room = roomsMap[roomCode];
       if (_.isEmpty(room)) {
         ws.send(formatMessage(MessageTypes.ROOM_DELETED, {}));
@@ -54,16 +54,12 @@ const handleMessage = (data, ws: ExtendedWebSocket) => {
       usersMap[userId] = { ws, userId, roomCode };
 
       // add player to the room
-      roomsMap[roomCode].playerMap[userId] = { coordinates, ready: false, name: userId };
+      room.playerMap[userId] = { coordinates, ready: false, name: userId };
 
       // user gets placed on the starting square
-      const square = roomsMap[roomCode].board[coordinates.y].squares[coordinates.x];
+      const square = room.board[coordinates.y].squares[coordinates.x];
       if (square.type === SquareType.Player) {
         square.playerId = userId;
-      }
-
-      if (_.isEmpty(room.playerToMove)) {
-        room.playerToMove = userId;
       }
 
       const clientIds = Object.keys(room.playerMap);
@@ -75,14 +71,15 @@ const handleMessage = (data, ws: ExtendedWebSocket) => {
           if (playerId === clientId) {
             continue;
           }
-          otherPlayer = { ready: player.ready, name: player.name, isYou: playerId === userId };
+          otherPlayer = { ready: player.ready, name: player.name };
+          break;
         }
         client.ws.send(
           formatMessage(MessageTypes.JOIN_ROOM, {
             userId: clientId,
-            yourTurn: clientId === room.playerToMove,
             // yourName: room.playerMap[clientId].name,
             yourName: clientId,
+            board: room.board,
             otherPlayer
           })
         );
@@ -101,10 +98,16 @@ const handleMessage = (data, ws: ExtendedWebSocket) => {
       }
 
       const clientIds = Object.keys(room.playerMap);
+      const random = Math.round(Math.random());
+      const playerIdToMove = clientIds[random];
+
+      if (_.isEmpty(room.playerIdToMove)) {
+        room.playerIdToMove = playerIdToMove;
+      }
 
       for (const clientId of clientIds) {
         const client = usersMap[clientId];
-        client.ws.send(formatMessage(MessageTypes.READY, { board: room.board }));
+        client.ws.send(formatMessage(MessageTypes.READY, { yourTurn: clientId === playerIdToMove }));
       }
 
       break;
@@ -140,7 +143,9 @@ const handleMessage = (data, ws: ExtendedWebSocket) => {
       pastUser.ws = ws;
       ws.userId = pastUser.userId;
 
-      ws.send(formatMessage(MessageTypes.RECONNECT, { board: pastRoom.board }));
+      ws.send(
+        formatMessage(MessageTypes.RECONNECT, { board: pastRoom.board, yourTurn: userId === pastRoom.playerIdToMove })
+      );
 
       break;
     }
@@ -161,12 +166,12 @@ const handleMessage = (data, ws: ExtendedWebSocket) => {
       const clientIds = Object.keys(room.playerMap);
 
       const newPlayerToMove = _.find(clientIds, (id) => id !== userId);
-      room.playerToMove = newPlayerToMove;
+      room.playerIdToMove = newPlayerToMove;
 
       for (const clientId of clientIds) {
         const client = usersMap[clientId];
         client.ws.send(
-          formatMessage(MessageTypes.MOVE, { board: room.board, yourTurn: clientId === room.playerToMove })
+          formatMessage(MessageTypes.MOVE, { board: room.board, yourTurn: clientId === room.playerIdToMove })
         );
       }
 

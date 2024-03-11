@@ -2,7 +2,7 @@ import { WebSocket } from 'ws';
 
 export type Room = {
   playerMap: Record<string, Player>;
-  playerToMove: string;
+  playerIdToMove: string;
   board: Board;
 };
 
