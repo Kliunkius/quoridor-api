@@ -1,4 +1,6 @@
+import _ from 'lodash';
 import { WebSocket } from 'ws';
+import { getRoomByUserId } from 'websocketHelper';
 
 export type Room = {
   playerMap: Record<string, Player>;
@@ -47,7 +49,7 @@ enum RowTypes {
 type BoardSquare<T> = T extends SquareType.Player
   ? { type: T; playerId?: string }
   : T extends SquareType.Wall
-    ? { type: T; isPlaced: boolean }
+    ? { type: T; isPlaced: boolean; isAvailable: boolean; isWalkable: boolean }
     : never;
 
 type BoardRow<T> = { type: RowTypes; squares: BoardSquare<T>[] };
@@ -65,9 +67,16 @@ const createRow = (type: RowTypes): BoardRow<SquareType> => {
     squares:
       type === RowTypes.Mixed
         ? array.map((index) => {
-            return index % 2 === 0 ? { type: SquareType.Player } : { type: SquareType.Wall, isPlaced: false };
+            return index % 2 === 0
+              ? { type: SquareType.Player }
+              : { type: SquareType.Wall, isPlaced: false, isAvailable: true, isWalkable: true };
           })
-        : array.map(() => ({ type: SquareType.Wall, isPlaced: false }))
+        : array.map((index) => ({
+            type: SquareType.Wall,
+            isPlaced: false,
+            isAvailable: index % 2 === 0,
+            isWalkable: index % 2 === 0
+          }))
   };
   return row;
 };
@@ -82,6 +91,49 @@ export const createNewBoard = (): Board => {
 };
 
 export type Move = { type: SquareType; coordinates: Coordinates; userId: string };
+
+const updateBoardWalls = (rowType: RowTypes, coordinates: Coordinates, board: Board) => {
+  const targetedSquare = board[coordinates.y].squares[coordinates.x];
+  if (targetedSquare.type === SquareType.Wall) {
+    board[coordinates.y].squares[coordinates.x] = {
+      ...targetedSquare,
+      isPlaced: true,
+      isWalkable: false,
+      isAvailable: false
+    };
+  }
+
+  const affectedSquares: (Coordinates & { isWalkable: boolean })[] = [];
+  if (rowType === RowTypes.Mixed) {
+    // check if wall is at the top
+    if (coordinates.y !== 0) {
+      affectedSquares.push({ y: coordinates.y - 2, x: coordinates.x, isWalkable: false });
+    }
+    // check if wall is at the bottom
+    if (coordinates.y + 1 !== BOARD_WIDTH) {
+      affectedSquares.push({ y: coordinates.y + 2, x: coordinates.x, isWalkable: true });
+    }
+    affectedSquares.push({ y: coordinates.y - 1, x: coordinates.x - 1, isWalkable: true });
+  }
+  if (rowType === RowTypes.Walls) {
+    // check if wall is at the right
+    if (coordinates.x + 1 !== BOARD_WIDTH) {
+      affectedSquares.push({ y: coordinates.y, x: coordinates.x + 2, isWalkable: false });
+    }
+    // check if wall is at the left
+    if (coordinates.x !== 0) {
+      affectedSquares.push({ y: coordinates.y, x: coordinates.x - 2, isWalkable: true });
+    }
+    affectedSquares.push({ y: coordinates.y + 1, x: coordinates.x + 1, isWalkable: true });
+  }
+
+  for (const square of affectedSquares) {
+    const currentSquare = board[square.y].squares[square.x];
+    if (currentSquare.type === SquareType.Wall) {
+      board[square.y].squares[square.x] = { ...currentSquare, isAvailable: false, isWalkable: square.isWalkable };
+    }
+  }
+};
 
 export const movePiece = ({ type, coordinates, userId }: Move) => {
   if (type === SquareType.Player) {
@@ -104,24 +156,9 @@ export const movePiece = ({ type, coordinates, userId }: Move) => {
   }
 
   if (type === SquareType.Wall) {
-    const roomCode = usersMap[userId].roomCode;
-    const board = roomsMap[roomCode].board;
+    const room = getRoomByUserId(userId);
+    const board = room.board;
     const row = board[coordinates.y];
-    if (row.type === RowTypes.Walls) {
-      for (let i = coordinates.x; i <= coordinates.x + 2; i++) {
-        const square = row.squares[i];
-        if (square.type === SquareType.Wall) {
-          square.isPlaced = true;
-        }
-      }
-    }
-    if (row.type === RowTypes.Mixed) {
-      for (let i = coordinates.y; i >= coordinates.y - 2; i--) {
-        const square = board[i].squares[coordinates.x];
-        if (square.type === SquareType.Wall) {
-          square.isPlaced = true;
-        }
-      }
-    }
+    updateBoardWalls(row.type, coordinates, board);
   }
 };
