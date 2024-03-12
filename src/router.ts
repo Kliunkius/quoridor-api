@@ -1,19 +1,21 @@
 import express, { Request, Response } from 'express';
 
-import { rooms } from './globals';
+import { roomsMap } from './boardHelper';
+import { createNewBoard } from './boardHelper';
 
 const router = express.Router();
 
-router.get('/', (req: Request, res: Response) => {
-  res.send('Gyat damn!');
-});
-
-router.get('/rooms', (req: Request, res: Response) => {
-  res.send(rooms);
-});
-
 router.post('/create-room', (req: Request, res: Response) => {
-  rooms[req.body.roomCode] = 'jerma';
+  const roomCode = req.body.roomCode;
+
+  if (!roomCode) {
+    res.status(404);
+    res.send();
+  }
+
+  const newBoard = createNewBoard();
+  roomsMap[roomCode] = { board: newBoard, playerMap: {}, playerIdToMove: '' };
+
   res.send({ success: true });
 });
 
