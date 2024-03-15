@@ -1,6 +1,6 @@
 import _ from 'lodash';
 import { WebSocket } from 'ws';
-import { getRoomByUserId } from 'websocketHelper';
+import { getRoomByUserId } from './websocketHelper';
 
 export type Room = {
   playerMap: Record<string, Player>;
@@ -60,7 +60,7 @@ export type Board = Record<number, BoardRow<SquareType>>;
 // board height is also 17 because the board is square
 const BOARD_WIDTH = 17;
 
-const createRow = (type: RowTypes): BoardRow<SquareType> => {
+const createRow = (type: RowTypes, isTopRow: boolean): BoardRow<SquareType> => {
   const array = Array.from(Array(BOARD_WIDTH).keys());
   const row: BoardRow<SquareType> = {
     type,
@@ -69,14 +69,22 @@ const createRow = (type: RowTypes): BoardRow<SquareType> => {
         ? array.map((index) => {
             return index % 2 === 0
               ? { type: SquareType.Player }
-              : { type: SquareType.Wall, isPlaced: false, isAvailable: true, isWalkable: true };
+              : {
+                  type: SquareType.Wall,
+                  isPlaced: false,
+                  isAvailable: !isTopRow,
+                  isWalkable: true
+                };
           })
-        : array.map((index) => ({
-            type: SquareType.Wall,
-            isPlaced: false,
-            isAvailable: index % 2 === 0,
-            isWalkable: index % 2 === 0
-          }))
+        : array.map((index) => {
+            const IS_LAST_COLUMN = index < BOARD_WIDTH - 1;
+            return {
+              type: SquareType.Wall,
+              isPlaced: false,
+              isAvailable: index % 2 === 0 && IS_LAST_COLUMN,
+              isWalkable: index % 2 === 0
+            };
+          })
   };
   return row;
 };
@@ -84,7 +92,7 @@ const createRow = (type: RowTypes): BoardRow<SquareType> => {
 export const createNewBoard = (): Board => {
   const array = Array.from(Array(BOARD_WIDTH).keys());
   const board = array.reduce((map: Board, index) => {
-    map[index] = index % 2 === 0 ? createRow(RowTypes.Mixed) : createRow(RowTypes.Walls);
+    map[index] = index % 2 === 0 ? createRow(RowTypes.Mixed, index === 0) : createRow(RowTypes.Walls, false);
     return map;
   }, {});
   return board;
@@ -105,23 +113,17 @@ const updateBoardWalls = (rowType: RowTypes, coordinates: Coordinates, board: Bo
 
   const affectedSquares: (Coordinates & { isWalkable: boolean })[] = [];
   if (rowType === RowTypes.Mixed) {
-    // check if wall is at the top
-    if (coordinates.y !== 0) {
-      affectedSquares.push({ y: coordinates.y - 2, x: coordinates.x, isWalkable: false });
-    }
-    // check if wall is at the bottom
-    if (coordinates.y + 1 !== BOARD_WIDTH) {
+    affectedSquares.push({ y: coordinates.y - 2, x: coordinates.x, isWalkable: false });
+    // Check if coordinates are not next to the top border
+    if (coordinates.y < BOARD_WIDTH - 1) {
       affectedSquares.push({ y: coordinates.y + 2, x: coordinates.x, isWalkable: true });
     }
     affectedSquares.push({ y: coordinates.y - 1, x: coordinates.x - 1, isWalkable: true });
   }
   if (rowType === RowTypes.Walls) {
-    // check if wall is at the right
-    if (coordinates.x + 1 !== BOARD_WIDTH) {
-      affectedSquares.push({ y: coordinates.y, x: coordinates.x + 2, isWalkable: false });
-    }
-    // check if wall is at the left
-    if (coordinates.x !== 0) {
+    affectedSquares.push({ y: coordinates.y, x: coordinates.x + 2, isWalkable: false });
+    // Check if coordinates are not next to the left border
+    if (coordinates.x > 0) {
       affectedSquares.push({ y: coordinates.y, x: coordinates.x - 2, isWalkable: true });
     }
     affectedSquares.push({ y: coordinates.y + 1, x: coordinates.x + 1, isWalkable: true });
