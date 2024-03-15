@@ -1,6 +1,6 @@
 import _ from 'lodash';
 import { WebSocket } from 'ws';
-import { getRoomByUserId } from 'websocketHelper';
+import { getRoomByUserId } from './websocketHelper';
 
 export type Room = {
   playerMap: Record<string, Player>;
@@ -60,7 +60,7 @@ export type Board = Record<number, BoardRow<SquareType>>;
 // board height is also 17 because the board is square
 const BOARD_WIDTH = 17;
 
-const createRow = (type: RowTypes): BoardRow<SquareType> => {
+const createRow = (type: RowTypes, isTopRow: boolean): BoardRow<SquareType> => {
   const array = Array.from(Array(BOARD_WIDTH).keys());
   const row: BoardRow<SquareType> = {
     type,
@@ -69,12 +69,17 @@ const createRow = (type: RowTypes): BoardRow<SquareType> => {
         ? array.map((index) => {
             return index % 2 === 0
               ? { type: SquareType.Player }
-              : { type: SquareType.Wall, isPlaced: false, isAvailable: true, isWalkable: true };
+              : {
+                  type: SquareType.Wall,
+                  isPlaced: false,
+                  isAvailable: !isTopRow,
+                  isWalkable: true
+                };
           })
         : array.map((index) => ({
             type: SquareType.Wall,
             isPlaced: false,
-            isAvailable: index % 2 === 0,
+            isAvailable: index % 2 === 0 && index < BOARD_WIDTH - 1,
             isWalkable: index % 2 === 0
           }))
   };
@@ -84,7 +89,12 @@ const createRow = (type: RowTypes): BoardRow<SquareType> => {
 export const createNewBoard = (): Board => {
   const array = Array.from(Array(BOARD_WIDTH).keys());
   const board = array.reduce((map: Board, index) => {
-    map[index] = index % 2 === 0 ? createRow(RowTypes.Mixed) : createRow(RowTypes.Walls);
+    map[index] =
+      index % 2 === 0
+        ? index === 0
+          ? createRow(RowTypes.Mixed, true)
+          : createRow(RowTypes.Mixed, false)
+        : createRow(RowTypes.Walls, false);
     return map;
   }, {});
   return board;
