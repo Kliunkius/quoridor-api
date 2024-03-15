@@ -115,23 +115,17 @@ const updateBoardWalls = (rowType: RowTypes, coordinates: Coordinates, board: Bo
 
   const affectedSquares: (Coordinates & { isWalkable: boolean })[] = [];
   if (rowType === RowTypes.Mixed) {
-    // check if wall is at the top
-    if (coordinates.y !== 0) {
-      affectedSquares.push({ y: coordinates.y - 2, x: coordinates.x, isWalkable: false });
-    }
-    // check if wall is at the bottom
-    if (coordinates.y + 1 !== BOARD_WIDTH) {
+    affectedSquares.push({ y: coordinates.y - 2, x: coordinates.x, isWalkable: false });
+    // Check if coordinates are not next to the top border
+    if (coordinates.y < BOARD_WIDTH - 1) {
       affectedSquares.push({ y: coordinates.y + 2, x: coordinates.x, isWalkable: true });
     }
     affectedSquares.push({ y: coordinates.y - 1, x: coordinates.x - 1, isWalkable: true });
   }
   if (rowType === RowTypes.Walls) {
-    // check if wall is at the right
-    if (coordinates.x + 1 !== BOARD_WIDTH) {
-      affectedSquares.push({ y: coordinates.y, x: coordinates.x + 2, isWalkable: false });
-    }
-    // check if wall is at the left
-    if (coordinates.x !== 0) {
+    affectedSquares.push({ y: coordinates.y, x: coordinates.x + 2, isWalkable: false });
+    // Check if coordinates are not next to the left border
+    if (coordinates.x > 0) {
       affectedSquares.push({ y: coordinates.y, x: coordinates.x - 2, isWalkable: true });
     }
     affectedSquares.push({ y: coordinates.y + 1, x: coordinates.x + 1, isWalkable: true });
