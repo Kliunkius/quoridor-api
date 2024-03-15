@@ -76,12 +76,15 @@ const createRow = (type: RowTypes, isTopRow: boolean): BoardRow<SquareType> => {
                   isWalkable: true
                 };
           })
-        : array.map((index) => ({
-            type: SquareType.Wall,
-            isPlaced: false,
-            isAvailable: index % 2 === 0 && index < BOARD_WIDTH - 1,
-            isWalkable: index % 2 === 0
-          }))
+        : array.map((index) => {
+            const IS_LAST_COLUMN = index < BOARD_WIDTH - 1;
+            return {
+              type: SquareType.Wall,
+              isPlaced: false,
+              isAvailable: index % 2 === 0 && IS_LAST_COLUMN,
+              isWalkable: index % 2 === 0
+            };
+          })
   };
   return row;
 };
@@ -89,12 +92,7 @@ const createRow = (type: RowTypes, isTopRow: boolean): BoardRow<SquareType> => {
 export const createNewBoard = (): Board => {
   const array = Array.from(Array(BOARD_WIDTH).keys());
   const board = array.reduce((map: Board, index) => {
-    map[index] =
-      index % 2 === 0
-        ? index === 0
-          ? createRow(RowTypes.Mixed, true)
-          : createRow(RowTypes.Mixed, false)
-        : createRow(RowTypes.Walls, false);
+    map[index] = index % 2 === 0 ? createRow(RowTypes.Mixed, index === 0) : createRow(RowTypes.Walls, false);
     return map;
   }, {});
   return board;
