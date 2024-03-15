@@ -1,6 +1,6 @@
 import _ from 'lodash';
 import { WebSocket } from 'ws';
-import { getRoomByUserId } from 'websocketHelper';
+import { getRoomByUserId } from './websocketHelper';
 
 export type Room = {
   playerMap: Record<string, Player>;
