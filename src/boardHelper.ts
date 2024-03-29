@@ -176,9 +176,9 @@ export const movePiece = ({ type, coordinates, userId }: Move) => {
     player.coordinates = coordinates;
   }
 
-  const room = getRoomByUserId(userId);
-  const board = room.board;
   if (type === SquareType.Wall) {
+    const room = getRoomByUserId(userId);
+    const board = room.board;
     const row = board[coordinates.y];
     updateBoardWalls(row.type, coordinates, board);
   }
