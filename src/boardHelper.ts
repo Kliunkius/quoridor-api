@@ -56,7 +56,7 @@ type BoardRow<T> = { type: RowTypes; squares: BoardSquare<T>[] };
 
 export type Board = Record<number, BoardRow<SquareType>>;
 
-const getSquareByCoordinates = (coordinates: Coordinates, board: Board): BoardSquare<SquareType> => {
+export const getSquareByCoordinates = (coordinates: Coordinates, board: Board): BoardSquare<SquareType> => {
   return board[coordinates.y].squares[coordinates.x];
 };
 
@@ -104,110 +104,19 @@ export const createNewBoard = (): Board => {
 
 export type Move = { type: SquareType; coordinates: Coordinates; userId: string };
 
-const resetMoves = (board: Board) => {
+export const getPlayerCoordinates = (playerId: string, board: Board): Coordinates | null => {
   const keys = Object.keys(board);
-  keys.map((rowKey) => {
+  let playerCoordinates: Coordinates | null = null;
+  keys.map((rowKey, indexY) => {
     const row = board[Number(rowKey)];
-    row.squares.map((square) => {
-      if (square.type === SquareType.Player) {
-        square.isAvailable = false;
+    row.squares.map((square, indexX) => {
+      if (square.type === SquareType.Player && square?.playerId === playerId) {
+        playerCoordinates = { y: indexY, x: indexX };
       }
     });
   });
-};
-
-const checkLinear = (coordinatesSquare: Coordinates, coordinatesPlayer: Coordinates, board: Board): boolean => {
-  const square = getSquareByCoordinates(coordinatesSquare, board);
-  if (square.type !== SquareType.Player) throw new Error('Bad calculation.');
-  if (square.playerId) return false;
-  const coordinatesWallInBetween: Coordinates = {
-    y: coordinatesPlayer.y + (coordinatesSquare.y - coordinatesPlayer.y) / 2,
-    x: coordinatesPlayer.x + (coordinatesSquare.x - coordinatesPlayer.x) / 2
-  };
-  const wallInBetween = getSquareByCoordinates(coordinatesWallInBetween, board);
-  if (wallInBetween.type !== SquareType.Wall) throw new Error('Bad calculation.');
-  if (!wallInBetween.isWalkable) return false;
-  return true;
-};
-
-const checkDiagonalFromOneSide = (
-  coordinatesSquare: Coordinates,
-  coordinatesPlayer: Coordinates,
-  board: Board,
-  startFromHorizontal: boolean
-): boolean => {
-  const square = getSquareByCoordinates(coordinatesSquare, board);
-  if (square.type !== SquareType.Player) throw new Error('Bad calculation.');
-  // When targeted square is occupied by player
-  if (square.playerId) return false;
-
-  // When wall to the side of player's origin square is not walkable
-  let coordinatesWallInBetween: Coordinates = {
-    y: startFromHorizontal
-      ? coordinatesPlayer.y
-      : coordinatesPlayer.y + (coordinatesSquare.y - coordinatesPlayer.y) / 2,
-    x: startFromHorizontal ? coordinatesPlayer.x + (coordinatesSquare.x - coordinatesPlayer.x) / 2 : coordinatesPlayer.x
-  };
-  let wallInBetween = getSquareByCoordinates(coordinatesWallInBetween, board);
-  if (wallInBetween.type !== SquareType.Wall) throw new Error('Bad calculation.');
-  if (!wallInBetween.isWalkable) return false;
-
-  // When player square to the side of player's origin is not other player
-  const coordinatesPlayerInBetween: Coordinates = {
-    y: startFromHorizontal ? coordinatesPlayer.y : coordinatesSquare.y,
-    x: startFromHorizontal ? coordinatesSquare.x : coordinatesPlayer.x
-  };
-  const playerInBetween = getSquareByCoordinates(coordinatesPlayerInBetween, board);
-  if (playerInBetween.type !== SquareType.Player) throw new Error('Bad calculation.');
-  if (!playerInBetween.playerId) return false;
-
-  // When wall above or below the targeted square is not walkable
-  coordinatesWallInBetween = {
-    y: startFromHorizontal
-      ? coordinatesPlayer.y + (coordinatesSquare.y - coordinatesPlayer.y) / 2
-      : coordinatesSquare.y,
-    x: startFromHorizontal ? coordinatesSquare.x : coordinatesPlayer.x + (coordinatesSquare.x - coordinatesPlayer.x) / 2
-  };
-  wallInBetween = getSquareByCoordinates(coordinatesWallInBetween, board);
-  if (wallInBetween.type !== SquareType.Wall) throw new Error('Bad calculation.');
-  if (!wallInBetween.isWalkable) return false;
-
-  // When targeted square is not near the border of the board or there is no wall that would block linear jump
-  if (
-    startFromHorizontal
-      ? coordinatesSquare.x
-      : coordinatesSquare.y !== 0 && startFromHorizontal
-        ? coordinatesSquare.x
-        : coordinatesSquare.y !== BOARD_WIDTH - 1
-  ) {
-    coordinatesWallInBetween = {
-      y: startFromHorizontal
-        ? coordinatesPlayer.y
-        : coordinatesPlayer.y + ((coordinatesSquare.y - coordinatesPlayer.y) / 2) * 3,
-      x: startFromHorizontal
-        ? coordinatesPlayer.x + ((coordinatesSquare.x - coordinatesPlayer.x) / 2) * 3
-        : coordinatesPlayer.x
-    };
-    wallInBetween = getSquareByCoordinates(coordinatesWallInBetween, board);
-    if (wallInBetween.type !== SquareType.Wall) throw new Error('Bad calculation.');
-    if (wallInBetween.isWalkable) return false;
-  }
-
-  return true;
-};
-
-const checkDiagonal = (coordinatesSquare: Coordinates, coordinatesPlayer: Coordinates, board: Board): boolean => {
-  if (
-    checkDiagonalFromOneSide(coordinatesSquare, coordinatesPlayer, board, true) ||
-    checkDiagonalFromOneSide(coordinatesSquare, coordinatesPlayer, board, false)
-  ) {
-    return true;
-  }
-  return false;
-};
-
-const updatePlayerMoves = (coordinatesPlayer: Coordinates, board: Board) => {
-  resetMoves(board);
+  if (playerCoordinates === null) throw new Error('Player not found.');
+  return playerCoordinates;
 };
 
 const updateBoardWalls = (rowType: RowTypes, coordinates: Coordinates, board: Board) => {
@@ -267,9 +176,9 @@ export const movePiece = ({ type, coordinates, userId }: Move) => {
     player.coordinates = coordinates;
   }
 
+  const room = getRoomByUserId(userId);
+  const board = room.board;
   if (type === SquareType.Wall) {
-    const room = getRoomByUserId(userId);
-    const board = room.board;
     const row = board[coordinates.y];
     updateBoardWalls(row.type, coordinates, board);
   }

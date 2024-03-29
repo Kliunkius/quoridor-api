@@ -8,12 +8,14 @@ import {
   PLAYER1_STARTING_POSITION,
   PLAYER2_STARTING_POSITION,
   SquareType,
+  getPlayerCoordinates,
   movePiece,
   roomsMap,
   usersMap
 } from './boardHelper';
 import { Message, MessageTypes } from './websocketTypes';
 import { getRoomByUserId, isRoomReady } from './websocketHelper';
+import { updatePlayerMoves } from './calculatePlayerMoves';
 
 type ExtendedWebSocket = WebSocket & {
   userId: string;
@@ -105,9 +107,12 @@ const handleMessage = (data, ws: ExtendedWebSocket) => {
         room.playerIdToMove = playerIdToMove;
       }
 
+      const coordinatesPlayer = getPlayerCoordinates(playerIdToMove, room.board);
+      updatePlayerMoves(coordinatesPlayer, room.board);
+
       for (const clientId of clientIds) {
         const client = usersMap[clientId];
-        client.ws.send(formatMessage(MessageTypes.READY, { yourTurn: clientId === playerIdToMove }));
+        client.ws.send(formatMessage(MessageTypes.READY, { yourTurn: clientId === playerIdToMove, board: room.board }));
       }
 
       break;
@@ -161,12 +166,15 @@ const handleMessage = (data, ws: ExtendedWebSocket) => {
         return;
       }
 
-      movePiece({ coordinates, type, userId });
-
       const clientIds = Object.keys(room.playerMap);
 
       const newPlayerToMove = _.find(clientIds, (id) => id !== userId);
       room.playerIdToMove = newPlayerToMove;
+
+      movePiece({ coordinates, type, userId });
+
+      const coordinatesEnemy = getPlayerCoordinates(newPlayerToMove, room.board);
+      updatePlayerMoves(coordinatesEnemy, room.board);
 
       for (const clientId of clientIds) {
         const client = usersMap[clientId];
