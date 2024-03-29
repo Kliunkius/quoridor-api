@@ -106,17 +106,17 @@ export type Move = { type: SquareType; coordinates: Coordinates; userId: string 
 
 export const getPlayerCoordinates = (playerId: string, board: Board): Coordinates | null => {
   const keys = Object.keys(board);
-  let playerCoordinates: Coordinates | null = null;
-  keys.map((rowKey, indexY) => {
+  for (let indexY = 0; indexY < keys.length; indexY++) {
+    const rowKey = keys[indexY];
     const row = board[Number(rowKey)];
-    row.squares.map((square, indexX) => {
+    for (let indexX = 0; indexX < row.squares.length; indexX++) {
+      const square = row.squares[indexX];
       if (square.type === SquareType.Player && square?.playerId === playerId) {
-        playerCoordinates = { y: indexY, x: indexX };
+        return { y: indexY, x: indexX };
       }
-    });
-  });
-  if (playerCoordinates === null) throw new Error('Player not found.');
-  return playerCoordinates;
+    }
+  }
+  return null;
 };
 
 const updateBoardWalls = (rowType: RowTypes, coordinates: Coordinates, board: Board) => {
