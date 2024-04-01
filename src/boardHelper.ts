@@ -105,14 +105,12 @@ export const createNewBoard = (): Board => {
 export type Move = { type: SquareType; coordinates: Coordinates; userId: string };
 
 export const getPlayerCoordinates = (playerId: string, board: Board): Coordinates | null => {
-  const keys = Object.keys(board);
-  for (let indexY = 0; indexY < keys.length; indexY++) {
-    const rowKey = keys[indexY];
+  for (const rowKey of Object.keys(board)) {
     const row = board[Number(rowKey)];
-    for (let indexX = 0; indexX < row.squares.length; indexX++) {
-      const square = row.squares[indexX];
+    for (const columnKey of Object.keys(row.squares)) {
+      const square = row.squares[Number(columnKey)];
       if (square.type === SquareType.Player && square?.playerId === playerId) {
-        return { y: indexY, x: indexX };
+        return { y: Number(rowKey), x: Number(columnKey) };
       }
     }
   }

@@ -50,7 +50,7 @@ const checkLinearJump = (coordinatesSquare: Coordinates, coordinatesPlayer: Coor
   if (square.type !== SquareType.Player) throw new Error("Square is not of type 'Player'");
 
   // When there is a wall between player and targeted square (1st square from player square)
-  let coordinatesWallNearPlayer: Coordinates = {
+  const coordinatesWallNearPlayer: Coordinates = {
     y: coordinateOffsetSquare(coordinatesSquare.y, coordinatesPlayer.y, 1),
     x: coordinateOffsetSquare(coordinatesSquare.x, coordinatesPlayer.x, 1)
   };
@@ -154,51 +154,6 @@ const checkDiagonal = (coordinatesSquare: Coordinates, coordinatesPlayer: Coordi
 export const updatePlayerMoves = (coordinatesPlayer: Coordinates, board: Board) => {
   resetMoves(board);
   const DISTANCE_BETWEEN_PLAYER_SQUARES = 2;
-  // Go through sqaures around the player (both linear and diagonal)
-  // for (
-  //   let relativeIndexY = -DISTANCE_BETWEEN_PLAYER_SQUARES;
-  //   relativeIndexY <= DISTANCE_BETWEEN_PLAYER_SQUARES;
-  //   relativeIndexY += DISTANCE_BETWEEN_PLAYER_SQUARES
-  // ) {
-  //   for (
-  //     let relativeIndexX = -DISTANCE_BETWEEN_PLAYER_SQUARES;
-  //     relativeIndexX <= DISTANCE_BETWEEN_PLAYER_SQUARES;
-  //     relativeIndexX += DISTANCE_BETWEEN_PLAYER_SQUARES
-  //   ) {
-  //     const coordinatesSquare: Coordinates = {
-  //       y: coordinatesPlayer.y + relativeIndexY,
-  //       x: coordinatesPlayer.x + relativeIndexX
-  //     };
-  //     // Move to the next square when calculated coordinates are outside the board
-  //     if (
-  //       coordinatesSquare.y < 0 ||
-  //       coordinatesSquare.y >= BOARD_WIDTH ||
-  //       coordinatesSquare.x < 0 ||
-  //       coordinatesSquare.x >= BOARD_WIDTH
-  //     ) {
-  //       continue;
-  //     }
-  //     if (board[coordinatesSquare.y].squares[coordinatesSquare.x].type !== SquareType.Player)
-  //       throw new Error("Square is not of type 'Player'");
-  //     // When targeted square coordinates are diagonal to player coordinates
-  //     if (
-  //       Math.abs(relativeIndexX) === DISTANCE_BETWEEN_PLAYER_SQUARES &&
-  //       Math.abs(relativeIndexY) === DISTANCE_BETWEEN_PLAYER_SQUARES &&
-  //       checkDiagonal(coordinatesSquare, coordinatesPlayer, board)
-  //     ) {
-  //       board[coordinatesSquare.y].squares[coordinatesSquare.x].isAvailable = true;
-  //     }
-  //     // When targeted square coordinates are linear to player coordinates
-  //     else if (
-  //       ((Math.abs(relativeIndexX) === DISTANCE_BETWEEN_PLAYER_SQUARES && Math.abs(relativeIndexY) === 0) ||
-  //         (Math.abs(relativeIndexX) === 0 && Math.abs(relativeIndexY) === DISTANCE_BETWEEN_PLAYER_SQUARES)) &&
-  //       checkLinear(coordinatesSquare, coordinatesPlayer, board)
-  //     ) {
-  //       board[coordinatesSquare.y].squares[coordinatesSquare.x].isAvailable = true;
-  //     }
-  //   }
-  // }
-
   const JUMP_DISTANCE_FROM_TARGET_TO_PLAYER = DISTANCE_BETWEEN_PLAYER_SQUARES * 2;
 
   const coordinatesOfAllLinearMoves = [
