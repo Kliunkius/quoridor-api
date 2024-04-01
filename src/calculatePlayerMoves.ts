@@ -122,24 +122,24 @@ const checkDiagonalFromOneSide = (
   if (!wallBetweenTargetAndEnemy.isWalkable) return false;
 
   // When targeted square is not near the border of the board or there is no wall that would block linear jump (3rd square from player square)
-  const LAST_ROW_INDEX = BOARD_WIDTH - 1;
-
   const coordinatesWallOverTheEnemy: Coordinates = {
     y: startFromHorizontal ? coordinatesPlayer.y : coordinateOffsetSquare(coordinatesSquare.y, coordinatesPlayer.y, 3),
     x: startFromHorizontal ? coordinateOffsetSquare(coordinatesSquare.x, coordinatesPlayer.x, 3) : coordinatesPlayer.x
   };
-  if (
-    coordinatesWallOverTheEnemy.y >= 0 &&
-    coordinatesWallOverTheEnemy.y <= LAST_ROW_INDEX &&
-    coordinatesWallOverTheEnemy.x >= 0 &&
-    coordinatesWallOverTheEnemy.x <= LAST_ROW_INDEX
-  ) {
-    const wallOverTheEnemy = getSquareByCoordinates(coordinatesWallOverTheEnemy, board);
-    if (wallOverTheEnemy.type !== SquareType.Wall) throw new Error("Square is not of type 'Wall'");
-    if (wallOverTheEnemy.isWalkable) return false;
+
+  if (!isCoordinateWithinBoard(coordinatesWallOverTheEnemy)) {
+    return true;
   }
+  const wallOverTheEnemy = getSquareByCoordinates(coordinatesWallOverTheEnemy, board);
+  if (wallOverTheEnemy.type !== SquareType.Wall) throw new Error("Square is not of type 'Wall'");
+  if (wallOverTheEnemy.isWalkable) return false;
 
   return true;
+};
+
+const LAST_ROW_INDEX = BOARD_WIDTH - 1;
+const isCoordinateWithinBoard = (coordinates: Coordinates) => {
+  return coordinates.y >= 0 && coordinates.y <= LAST_ROW_INDEX && coordinates.x >= 0 && coordinates.x <= LAST_ROW_INDEX;
 };
 
 // To check if player can move diagonally in each direction, two ways must be checked: start checking horizontally and move on to vertically and the opposite.
@@ -163,13 +163,7 @@ export const updatePlayerMoves = (coordinatesPlayer: Coordinates, board: Board) 
     { y: coordinatesPlayer.y, x: coordinatesPlayer.x + DISTANCE_BETWEEN_PLAYER_SQUARES }
   ];
   for (const coordinatesCurrent of coordinatesOfAllLinearMoves) {
-    if (
-      coordinatesCurrent.y >= 0 &&
-      coordinatesCurrent.y < BOARD_WIDTH &&
-      coordinatesCurrent.x >= 0 &&
-      coordinatesCurrent.x < BOARD_WIDTH &&
-      checkLinear(coordinatesCurrent, coordinatesPlayer, board)
-    ) {
+    if (isCoordinateWithinBoard(coordinatesCurrent) && checkLinear(coordinatesCurrent, coordinatesPlayer, board)) {
       board[coordinatesCurrent.y].squares[coordinatesCurrent.x].isAvailable = true;
     }
   }
@@ -193,13 +187,7 @@ export const updatePlayerMoves = (coordinatesPlayer: Coordinates, board: Board) 
     }
   ];
   for (const coordinatesCurrent of coordinatesOfAllDiagonalMoves) {
-    if (
-      coordinatesCurrent.y >= 0 &&
-      coordinatesCurrent.y < BOARD_WIDTH &&
-      coordinatesCurrent.x >= 0 &&
-      coordinatesCurrent.x < BOARD_WIDTH &&
-      checkDiagonal(coordinatesCurrent, coordinatesPlayer, board)
-    ) {
+    if (isCoordinateWithinBoard(coordinatesCurrent) && checkDiagonal(coordinatesCurrent, coordinatesPlayer, board)) {
       board[coordinatesCurrent.y].squares[coordinatesCurrent.x].isAvailable = true;
     }
   }
@@ -211,13 +199,7 @@ export const updatePlayerMoves = (coordinatesPlayer: Coordinates, board: Board) 
     { y: coordinatesPlayer.y, x: coordinatesPlayer.x + JUMP_DISTANCE_FROM_TARGET_TO_PLAYER }
   ];
   for (const coordinatesCurrent of coordinatesOfAllLinearJumps) {
-    if (
-      coordinatesCurrent.y >= 0 &&
-      coordinatesCurrent.y < BOARD_WIDTH &&
-      coordinatesCurrent.x >= 0 &&
-      coordinatesCurrent.x < BOARD_WIDTH &&
-      checkLinearJump(coordinatesCurrent, coordinatesPlayer, board)
-    ) {
+    if (isCoordinateWithinBoard(coordinatesCurrent) && checkLinearJump(coordinatesCurrent, coordinatesPlayer, board)) {
       board[coordinatesCurrent.y].squares[coordinatesCurrent.x].isAvailable = true;
     }
   }
