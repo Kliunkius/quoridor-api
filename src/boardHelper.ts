@@ -47,7 +47,7 @@ enum RowTypes {
 }
 
 type BoardSquare<T> = T extends SquareType.Player
-  ? { type: T; playerId?: string }
+  ? { type: T; playerId?: string; isAvailable: boolean }
   : T extends SquareType.Wall
     ? { type: T; isPlaced: boolean; isAvailable: boolean; isWalkable: boolean }
     : never;
@@ -55,6 +55,10 @@ type BoardSquare<T> = T extends SquareType.Player
 type BoardRow<T> = { type: RowTypes; squares: BoardSquare<T>[] };
 
 export type Board = Record<number, BoardRow<SquareType>>;
+
+export const getSquareByCoordinates = (coordinates: Coordinates, board: Board): BoardSquare<SquareType> => {
+  return board[coordinates.y].squares[coordinates.x];
+};
 
 // the board is 17x17 because we count walls as seperate squares
 // board height is also 17 because the board is square
@@ -68,7 +72,7 @@ const createRow = (type: RowTypes, isTopRow: boolean): BoardRow<SquareType> => {
       type === RowTypes.Mixed
         ? array.map((index) => {
             return index % 2 === 0
-              ? { type: SquareType.Player }
+              ? { type: SquareType.Player, isAvailable: false }
               : {
                   type: SquareType.Wall,
                   isPlaced: false,
@@ -99,6 +103,19 @@ export const createNewBoard = (): Board => {
 };
 
 export type Move = { type: SquareType; coordinates: Coordinates; userId: string };
+
+export const getPlayerCoordinates = (playerId: string, board: Board): Coordinates | null => {
+  for (const rowKey of Object.keys(board)) {
+    const row = board[Number(rowKey)];
+    for (const columnKey of Object.keys(row.squares)) {
+      const square = row.squares[Number(columnKey)];
+      if (square.type === SquareType.Player && square?.playerId === playerId) {
+        return { y: Number(rowKey), x: Number(columnKey) };
+      }
+    }
+  }
+  return null;
+};
 
 const updateBoardWalls = (rowType: RowTypes, coordinates: Coordinates, board: Board) => {
   const targetedSquare = board[coordinates.y].squares[coordinates.x];
