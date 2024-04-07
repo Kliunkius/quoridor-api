@@ -18,7 +18,7 @@ export class Websocket {
     @inject(TYPES.PlayerMoveCalculator) private playerMoveCalculator: PlayerMoveCalculator
   ) {}
 
-  private formatMessage(type: MessageTypes, data: any) {
+  formatMessage(type: MessageTypes, data: any) {
     return JSON.stringify({ type, data });
   }
 
@@ -194,7 +194,7 @@ export class Websocket {
     }
   }
 
-  handleClose = (ws: ExtendedWebSocket) => {
+  handleClose(ws: ExtendedWebSocket) {
     const userId = ws.userId;
     const user = this.stateHandler.getUser(userId);
     if (!userId || !user) {
@@ -211,7 +211,7 @@ export class Websocket {
     const interval = setTimeout(deletePlayer, 1000 * 60);
 
     user.interval = interval;
-  };
+  }
 
   configureWebSocketServer(wss: WebSocketServer) {
     wss.on('connection', (ws: ExtendedWebSocket) => {
