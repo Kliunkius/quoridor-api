@@ -1,9 +1,14 @@
 import express, { Request, Response } from 'express';
 
-import { roomsMap } from './boardHelper';
-import { createNewBoard } from './boardHelper';
+import { iocContainer } from '../ioc/inversify.config';
+import { TYPES } from '../ioc/types';
+import { BoardHelper } from './BoardHelper/boardHelper';
+import { StateHandler } from './StateHandler/stateHandler';
 
 const router = express.Router();
+
+const stateHandler = iocContainer.get<StateHandler>(TYPES.StateHandler);
+const boardHelper = iocContainer.get<BoardHelper>(TYPES.BoardHelper);
 
 router.post('/create-room', (req: Request, res: Response) => {
   const roomCode = req.body.roomCode;
@@ -13,8 +18,8 @@ router.post('/create-room', (req: Request, res: Response) => {
     res.send();
   }
 
-  const newBoard = createNewBoard();
-  roomsMap[roomCode] = { board: newBoard, playerMap: {}, playerIdToMove: '' };
+  const newBoard = boardHelper.createNewBoard();
+  stateHandler.setRoom(roomCode, { board: newBoard, playerMap: {}, playerIdToMove: '' });
 
   res.send({ success: true });
 });
