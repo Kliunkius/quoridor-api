@@ -5,8 +5,10 @@ import { createServer } from 'http';
 import { WebSocketServer } from 'ws';
 import cors from 'cors';
 
+import { iocContainer } from '../ioc/inversify.config';
+import { TYPES } from '../ioc/types';
+import { Websocket } from './Websocket/websocket';
 import router from './router';
-import { configureWebSocketServer } from './websocket';
 
 const port = process.env.PORT || 3005;
 
@@ -34,7 +36,9 @@ app.use((err, req, res, next) => {
 const server = createServer(app);
 const wss = new WebSocketServer({ noServer: true });
 
-configureWebSocketServer(wss);
+const websocket = iocContainer.get<Websocket>(TYPES.Websocket);
+
+websocket.configureWebSocketServer(wss);
 
 server.on('upgrade', function upgrade(request, socket, head) {
   wss.handleUpgrade(request, socket, head, (ws) => {
