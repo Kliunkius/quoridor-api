@@ -154,22 +154,22 @@ export class PlayerMoveCalculator {
     return true;
   }
 
-  isCoordinateWithinBoard = (coordinates: Coordinates) => {
+  isCoordinateWithinBoard(coordinates: Coordinates) {
     return (
       coordinates.y >= 0 && coordinates.y <= LAST_ROW_INDEX && coordinates.x >= 0 && coordinates.x <= LAST_ROW_INDEX
     );
-  };
+  }
 
   // To check if player can move diagonally in each direction, two ways must be checked: start checking horizontally and move on to vertically and the opposite.
-  checkDiagonal = (coordinatesSquare: Coordinates, coordinatesPlayer: Coordinates, board: Board): boolean => {
+  checkDiagonal(coordinatesSquare: Coordinates, coordinatesPlayer: Coordinates, board: Board): boolean {
     // Check diagonal starting horizontally, then starting vertically
     return (
       this.checkDiagonalFromOneSide(coordinatesSquare, coordinatesPlayer, board, true) ||
       this.checkDiagonalFromOneSide(coordinatesSquare, coordinatesPlayer, board, false)
     );
-  };
+  }
 
-  updatePlayerMoves = (coordinatesPlayer: Coordinates, board: Board) => {
+  updatePlayerMoves(coordinatesPlayer: Coordinates, board: Board) {
     this.resetMoves(board);
     const DISTANCE_BETWEEN_PLAYER_SQUARES = 2;
     const JUMP_DISTANCE_FROM_TARGET_TO_PLAYER = DISTANCE_BETWEEN_PLAYER_SQUARES * 2;
@@ -230,5 +230,5 @@ export class PlayerMoveCalculator {
         board[coordinatesCurrent.y].squares[coordinatesCurrent.x].isAvailable = true;
       }
     }
-  };
+  }
 }
