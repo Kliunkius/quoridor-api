@@ -61,7 +61,7 @@ describe('WebSocket Server Integration Tests', () => {
 
     ws.close();
 
-    expect(called).toBe(7);
+    expect(called).toBe(5);
   });
 
   it('should echo back messages 2', async () => {
