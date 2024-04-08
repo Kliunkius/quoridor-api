@@ -54,17 +54,29 @@ export class BoardService {
       affectedSquares.push({ y: coordinates.y - 2, x: coordinates.x, isWalkable: false });
       // Check if coordinates are not next to the top border
       if (coordinates.y < BOARD_WIDTH - 1) {
-        affectedSquares.push({ y: coordinates.y + 2, x: coordinates.x, isWalkable: true });
+        const squareUnder = board[coordinates.y + 2].squares[coordinates.x];
+        if (squareUnder.type === SquareType.Wall) {
+          affectedSquares.push({ ...squareUnder, y: coordinates.y + 2, x: coordinates.x });
+        }
       }
-      affectedSquares.push({ y: coordinates.y - 1, x: coordinates.x - 1, isWalkable: true });
+      const squareToTheLeft = board[coordinates.y - 1].squares[coordinates.x - 1];
+      if (squareToTheLeft.type === SquareType.Wall) {
+        affectedSquares.push({ ...squareToTheLeft, y: coordinates.y - 1, x: coordinates.x - 1 });
+      }
     }
     if (rowType === RowTypes.Walls) {
       affectedSquares.push({ y: coordinates.y, x: coordinates.x + 2, isWalkable: false });
       // Check if coordinates are not next to the left border
       if (coordinates.x > 0) {
-        affectedSquares.push({ y: coordinates.y, x: coordinates.x - 2, isWalkable: true });
+        const squareToTheLeft = board[coordinates.y].squares[coordinates.x - 2];
+        if (squareToTheLeft.type === SquareType.Wall) {
+          affectedSquares.push({ ...squareToTheLeft, y: coordinates.y, x: coordinates.x - 2 });
+        }
       }
-      affectedSquares.push({ y: coordinates.y + 1, x: coordinates.x + 1, isWalkable: true });
+      const squareUnder = board[coordinates.y + 1].squares[coordinates.x + 1];
+      if (squareUnder.type === SquareType.Wall) {
+        affectedSquares.push({ ...squareUnder, y: coordinates.y + 1, x: coordinates.x + 1 });
+      }
     }
 
     for (const square of affectedSquares) {
