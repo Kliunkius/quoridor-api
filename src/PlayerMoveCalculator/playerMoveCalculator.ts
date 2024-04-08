@@ -1,12 +1,12 @@
-import { injectable, inject } from 'inversify';
+import { injectable } from 'inversify';
 import { Board, Coordinates, SquareType } from '../StateHandler/types';
-import { TYPES } from '../../ioc/types';
-import { BoardHelper } from '../BoardHelper/boardHelper';
 import { LAST_ROW_INDEX } from './types';
+import { getSquareByCoordinates } from '../BoardService/helper';
+import { coordinateOffsetSquare } from './helper';
 
 @injectable()
 export class PlayerMoveCalculator {
-  constructor(@inject(TYPES.BoardHelper) private boardHelper: BoardHelper) {}
+  constructor() {}
 
   resetMoves(board: Board) {
     const keys = Object.keys(board);
@@ -20,27 +20,19 @@ export class PlayerMoveCalculator {
     });
   }
 
-  coordinateOffsetSquare(coordinateSquare: number, coordinatePlayer: number, offset: number): number {
-    const difference = coordinateSquare - coordinatePlayer;
-    if (difference === 0) return coordinatePlayer;
-    return coordinatePlayer + (difference / Math.abs(difference)) * offset;
-  }
-
   // Checks if a player can walk to squares to his left, right, top, bottom (depends on which this is called).
   checkLinear(coordinatesSquare: Coordinates, coordinatesPlayer: Coordinates, board: Board): boolean {
-    const square = this.boardHelper.getSquareByCoordinates(coordinatesSquare, board);
-    if (square.type !== SquareType.Player) throw new Error("Square is not of type 'Player'");
+    const square = getSquareByCoordinates<SquareType.Player>(coordinatesSquare, board, SquareType.Player);
 
     // When square is already occupied by other player
     if (square.playerId) return false;
 
     // When there is a wall between player and targeted square (1st square from player square)
     const coordinatesWallNearPlayer: Coordinates = {
-      y: this.coordinateOffsetSquare(coordinatesSquare.y, coordinatesPlayer.y, 1),
-      x: this.coordinateOffsetSquare(coordinatesSquare.x, coordinatesPlayer.x, 1)
+      y: coordinateOffsetSquare(coordinatesSquare.y, coordinatesPlayer.y, 1),
+      x: coordinateOffsetSquare(coordinatesSquare.x, coordinatesPlayer.x, 1)
     };
-    const wallNearPlayer = this.boardHelper.getSquareByCoordinates(coordinatesWallNearPlayer, board);
-    if (wallNearPlayer.type !== SquareType.Wall) throw new Error("Square is not of type 'Wall'");
+    const wallNearPlayer = getSquareByCoordinates<SquareType.Wall>(coordinatesWallNearPlayer, board, SquareType.Wall);
     if (!wallNearPlayer.isWalkable) return false;
     return true;
   }
@@ -48,34 +40,34 @@ export class PlayerMoveCalculator {
   // Checks if a player can jump over to a square 2 blocks away in each direction (depends on which this is called).
   // In order to be able to, there have to be no blocking walls and there has to other player between targeted and current position squares.
   checkLinearJump(coordinatesSquare: Coordinates, coordinatesPlayer: Coordinates, board: Board): boolean {
-    const square = this.boardHelper.getSquareByCoordinates(coordinatesSquare, board);
-    if (square.type !== SquareType.Player) throw new Error("Square is not of type 'Player'");
+    getSquareByCoordinates<SquareType.Player>(coordinatesSquare, board, SquareType.Player);
 
     // When there is a wall between player and targeted square (1st square from player square)
     const coordinatesWallNearPlayer: Coordinates = {
-      y: this.coordinateOffsetSquare(coordinatesSquare.y, coordinatesPlayer.y, 1),
-      x: this.coordinateOffsetSquare(coordinatesSquare.x, coordinatesPlayer.x, 1)
+      y: coordinateOffsetSquare(coordinatesSquare.y, coordinatesPlayer.y, 1),
+      x: coordinateOffsetSquare(coordinatesSquare.x, coordinatesPlayer.x, 1)
     };
-    const wallNearPlayer = this.boardHelper.getSquareByCoordinates(coordinatesWallNearPlayer, board);
-    if (wallNearPlayer.type !== SquareType.Wall) throw new Error("Square is not of type 'Wall'");
+    const wallNearPlayer = getSquareByCoordinates<SquareType.Wall>(coordinatesWallNearPlayer, board, SquareType.Wall);
     if (!wallNearPlayer.isWalkable) return false;
 
     // When there is no enemy between player and targeted square (2nd square from player square)
     const coordinatesEnemy: Coordinates = {
-      y: this.coordinateOffsetSquare(coordinatesSquare.y, coordinatesPlayer.y, 2),
-      x: this.coordinateOffsetSquare(coordinatesSquare.x, coordinatesPlayer.x, 2)
+      y: coordinateOffsetSquare(coordinatesSquare.y, coordinatesPlayer.y, 2),
+      x: coordinateOffsetSquare(coordinatesSquare.x, coordinatesPlayer.x, 2)
     };
-    const enemy = this.boardHelper.getSquareByCoordinates(coordinatesEnemy, board);
-    if (enemy.type !== SquareType.Player) throw new Error("Square is not of type 'Player'");
+    const enemy = getSquareByCoordinates<SquareType.Player>(coordinatesEnemy, board, SquareType.Player);
     if (!enemy.playerId) return false;
 
     // When there is a wall between player and targeted square (3rd square from player square)
     const coordinatesWallOverTheEnemy: Coordinates = {
-      y: this.coordinateOffsetSquare(coordinatesSquare.y, coordinatesPlayer.y, 3),
-      x: this.coordinateOffsetSquare(coordinatesSquare.x, coordinatesPlayer.x, 3)
+      y: coordinateOffsetSquare(coordinatesSquare.y, coordinatesPlayer.y, 3),
+      x: coordinateOffsetSquare(coordinatesSquare.x, coordinatesPlayer.x, 3)
     };
-    const wallOverTheEnemy = this.boardHelper.getSquareByCoordinates(coordinatesWallOverTheEnemy, board);
-    if (wallOverTheEnemy.type !== SquareType.Wall) throw new Error("Square is not of type 'Wall'");
+    const wallOverTheEnemy = getSquareByCoordinates<SquareType.Wall>(
+      coordinatesWallOverTheEnemy,
+      board,
+      SquareType.Wall
+    );
     if (!wallOverTheEnemy.isWalkable) return false;
 
     return true;
@@ -91,7 +83,7 @@ export class PlayerMoveCalculator {
     board: Board,
     startFromHorizontal: boolean
   ): boolean {
-    const square = this.boardHelper.getSquareByCoordinates(coordinatesSquare, board);
+    const square = getSquareByCoordinates(coordinatesSquare, board, SquareType.Wall);
     if (square.type !== SquareType.Player) throw new Error("Square is not of type 'Player'");
     // When targeted square is occupied by player
     if (square.playerId) return false;
@@ -100,13 +92,10 @@ export class PlayerMoveCalculator {
     const coordinatesWallNearPlayer: Coordinates = {
       y: startFromHorizontal
         ? coordinatesPlayer.y
-        : this.coordinateOffsetSquare(coordinatesSquare.y, coordinatesPlayer.y, 1),
-      x: startFromHorizontal
-        ? this.coordinateOffsetSquare(coordinatesSquare.x, coordinatesPlayer.x, 1)
-        : coordinatesPlayer.x
+        : coordinateOffsetSquare(coordinatesSquare.y, coordinatesPlayer.y, 1),
+      x: startFromHorizontal ? coordinateOffsetSquare(coordinatesSquare.x, coordinatesPlayer.x, 1) : coordinatesPlayer.x
     };
-    const wallNearPlayer = this.boardHelper.getSquareByCoordinates(coordinatesWallNearPlayer, board);
-    if (wallNearPlayer.type !== SquareType.Wall) throw new Error("Square is not of type 'Wall'");
+    const wallNearPlayer = getSquareByCoordinates<SquareType.Wall>(coordinatesWallNearPlayer, board, SquareType.Wall);
     if (!wallNearPlayer.isWalkable) return false;
 
     // When player square to the side of player's origin is not an enemy
@@ -114,41 +103,39 @@ export class PlayerMoveCalculator {
       y: startFromHorizontal ? coordinatesPlayer.y : coordinatesSquare.y,
       x: startFromHorizontal ? coordinatesSquare.x : coordinatesPlayer.x
     };
-    const enemy = this.boardHelper.getSquareByCoordinates(coordinatesEnemy, board);
-    if (enemy.type !== SquareType.Player) throw new Error("Square is not of type 'Player'");
+    const enemy = getSquareByCoordinates<SquareType.Player>(coordinatesEnemy, board, SquareType.Player);
     if (!enemy.playerId) return false;
 
     // When wall between the targeted square and the enemy square is not walkable (adds 1 offset to coordinates in opposite cases than the wall near the player)
     const coordinatesWallBetweenTargetAndEnemy: Coordinates = {
       y: startFromHorizontal
-        ? this.coordinateOffsetSquare(coordinatesSquare.y, coordinatesPlayer.y, 1)
+        ? coordinateOffsetSquare(coordinatesSquare.y, coordinatesPlayer.y, 1)
         : coordinatesSquare.y,
-      x: startFromHorizontal
-        ? coordinatesSquare.x
-        : this.coordinateOffsetSquare(coordinatesSquare.x, coordinatesPlayer.x, 1)
+      x: startFromHorizontal ? coordinatesSquare.x : coordinateOffsetSquare(coordinatesSquare.x, coordinatesPlayer.x, 1)
     };
-    const wallBetweenTargetAndEnemy = this.boardHelper.getSquareByCoordinates(
+    const wallBetweenTargetAndEnemy = getSquareByCoordinates<SquareType.Wall>(
       coordinatesWallBetweenTargetAndEnemy,
-      board
+      board,
+      SquareType.Wall
     );
-    if (wallBetweenTargetAndEnemy.type !== SquareType.Wall) throw new Error("Square is not of type 'Wall'");
     if (!wallBetweenTargetAndEnemy.isWalkable) return false;
 
     // When targeted square is not near the border of the board or there is no wall that would block linear jump (3rd square from player square)
     const coordinatesWallOverTheEnemy: Coordinates = {
       y: startFromHorizontal
         ? coordinatesPlayer.y
-        : this.coordinateOffsetSquare(coordinatesSquare.y, coordinatesPlayer.y, 3),
-      x: startFromHorizontal
-        ? this.coordinateOffsetSquare(coordinatesSquare.x, coordinatesPlayer.x, 3)
-        : coordinatesPlayer.x
+        : coordinateOffsetSquare(coordinatesSquare.y, coordinatesPlayer.y, 3),
+      x: startFromHorizontal ? coordinateOffsetSquare(coordinatesSquare.x, coordinatesPlayer.x, 3) : coordinatesPlayer.x
     };
 
     if (!this.isCoordinateWithinBoard(coordinatesWallOverTheEnemy)) {
       return true;
     }
-    const wallOverTheEnemy = this.boardHelper.getSquareByCoordinates(coordinatesWallOverTheEnemy, board);
-    if (wallOverTheEnemy.type !== SquareType.Wall) throw new Error("Square is not of type 'Wall'");
+    const wallOverTheEnemy = getSquareByCoordinates<SquareType.Wall>(
+      coordinatesWallOverTheEnemy,
+      board,
+      SquareType.Wall
+    );
     if (wallOverTheEnemy.isWalkable) return false;
 
     return true;

@@ -2,21 +2,21 @@ import 'reflect-metadata';
 import { WebSocket, WebSocketServer } from 'ws';
 import { mock } from 'jest-mock-extended';
 
-import { Websocket } from '../../src/Websocket/websocket';
-import { BoardHelper } from '../../src/BoardHelper/boardHelper';
-import { PlayerMoveCalculator } from '../../src/PlayerMoveCalculator/playerMoveCalculator';
-import { StateHandler } from '../../src/StateHandler/stateHandler';
-import { Message, MessageTypes } from '../../src/Websocket/types';
+import { Websocket } from '../../Websocket/websocket';
+import { BoardService } from '../../BoardService/boardService';
+import { PlayerMoveCalculator } from '../../PlayerMoveCalculator/playerMoveCalculator';
+import { StateHandler } from '../../StateHandler/stateHandler';
+import { Message, MessageTypes } from '../../Websocket/types';
 
 describe('WebSocket Server Integration Tests', () => {
   let websocket: Websocket;
   let server: WebSocketServer;
   const stateHandlerMock = mock<StateHandler>();
-  const boardHelperMock = mock<BoardHelper>();
+  const boardServiceMock = mock<BoardService>();
   const playerMoveCalculatorMock = mock<PlayerMoveCalculator>();
 
   beforeEach(() => {
-    websocket = new Websocket(boardHelperMock, stateHandlerMock, playerMoveCalculatorMock);
+    websocket = new Websocket(boardServiceMock, stateHandlerMock, playerMoveCalculatorMock);
     server = new WebSocketServer({ port: 8080 });
     websocket.configureWebSocketServer(server);
   });

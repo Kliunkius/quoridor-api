@@ -1,6 +1,6 @@
 const TYPES = {
   StateHandler: Symbol.for('StateHandler'),
-  BoardHelper: Symbol.for('BoardHelper'),
+  BoardService: Symbol.for('BoardService'),
   PlayerMoveCalculator: Symbol.for('PlayerMoveCalculator'),
   Websocket: Symbol.for('Websocket')
 };
