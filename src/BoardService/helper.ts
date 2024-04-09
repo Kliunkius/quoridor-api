@@ -45,7 +45,7 @@ export const getSquareByCoordinates = <T = SquareType.Player>(
   board: Board,
   expectedType: SquareType
 ): BoardSquare<T> => {
-  const square = board[coordinates.y].squares[coordinates.x];
+  const square = board[coordinates.y]?.squares[coordinates.x] || ({} as BoardSquare<T>);
 
   if (square.type !== expectedType) {
     console.error('Bad square type calculation.');

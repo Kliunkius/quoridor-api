@@ -83,8 +83,7 @@ export class PlayerMoveCalculator {
     board: Board,
     startFromHorizontal: boolean
   ): boolean {
-    const square = getSquareByCoordinates(coordinatesSquare, board, SquareType.Wall);
-    if (square.type !== SquareType.Player) throw new Error("Square is not of type 'Player'");
+    const square = getSquareByCoordinates<SquareType.Player>(coordinatesSquare, board, SquareType.Player);
     // When targeted square is occupied by player
     if (square.playerId) return false;
 
