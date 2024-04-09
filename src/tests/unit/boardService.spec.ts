@@ -59,10 +59,10 @@ describe('BoardService unit tests', () => {
     });
 
     it('should place wall in a wall row', () => {
-      const horizontalWallPosition: Coordinates = { y: 5, x: 3 };
+      const horizontalWallPosition: Coordinates = { y: 5, x: 4 };
       boardService.movePiece({ type: SquareType.Wall, coordinates: horizontalWallPosition, userId: USER_ID });
 
-      const targetedSquare = getSquareByCoordinates<SquareType.Wall>(horizontalWallPosition, BOARD, SquareType.Player);
+      const targetedSquare = getSquareByCoordinates<SquareType.Wall>(horizontalWallPosition, BOARD, SquareType.Wall);
       expect(targetedSquare.isAvailable).toBe(false);
       expect(targetedSquare.isWalkable).toBe(false);
       expect(targetedSquare.isPlaced).toBe(true);
@@ -76,14 +76,14 @@ describe('BoardService unit tests', () => {
       ];
 
       for (const squareCoordinates of blockedSquaresCoordinates) {
-        const square = getSquareByCoordinates<SquareType.Wall>(squareCoordinates, BOARD, SquareType.Player);
+        const square = getSquareByCoordinates<SquareType.Wall>(squareCoordinates, BOARD, SquareType.Wall);
         expect(square.isAvailable).toBe(false);
         expect(square.isWalkable).toBe(false);
         expect(square.isPlaced).toBe(false);
       }
 
       for (const squareCoordinates of unavailableSquaresCoordinates) {
-        const square = getSquareByCoordinates<SquareType.Wall>(squareCoordinates, BOARD, SquareType.Player);
+        const square = getSquareByCoordinates<SquareType.Wall>(squareCoordinates, BOARD, SquareType.Wall);
         expect(square.isAvailable).toBe(false);
         expect(square.isWalkable).toBe(true);
         expect(square.isPlaced).toBe(false);
