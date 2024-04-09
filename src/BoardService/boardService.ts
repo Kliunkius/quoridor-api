@@ -99,8 +99,6 @@ export class BoardService {
       unavailableSquares.push(squareBottomRight);
     }
 
-    console.log('unavailableSquares', unavailableSquares);
-
     for (const square of blockedSquares) {
       square.isWalkable = false;
       square.isAvailable = false;
