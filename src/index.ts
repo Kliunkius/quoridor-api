@@ -5,8 +5,8 @@ import { createServer } from 'http';
 import { WebSocketServer } from 'ws';
 import cors from 'cors';
 
-import { iocContainer } from '../ioc/inversify.config';
-import { TYPES } from '../ioc/types';
+import { iocContainer } from './ioc/inversify.config';
+import { TYPES } from './ioc/types';
 import { Websocket } from './Websocket/websocket';
 import router from './router';
 

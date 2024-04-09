@@ -2,18 +2,19 @@ import _ from 'lodash';
 import { WebSocketServer } from 'ws';
 import { v4 as uuidv4 } from 'uuid';
 import { injectable, inject } from 'inversify';
-import { TYPES } from '../../ioc/types';
-import { BoardHelper } from '../BoardHelper/boardHelper';
+import { TYPES } from '../ioc/types';
+import { BoardService } from '../BoardService/boardService';
 import { Message, MessageTypes } from './types';
 import { StateHandler } from '../StateHandler/stateHandler';
 import { Coordinates, ExtendedWebSocket, SquareType } from '../StateHandler/types';
-import { MAX_PLAYER_COUNT, PLAYER1_STARTING_POSITION, PLAYER2_STARTING_POSITION } from '../BoardHelper/types';
+import { MAX_PLAYER_COUNT, PLAYER1_STARTING_POSITION, PLAYER2_STARTING_POSITION } from '../BoardService/types';
 import { PlayerMoveCalculator } from '../PlayerMoveCalculator/playerMoveCalculator';
+import { getPlayerCoordinates, isRoomReady } from '../BoardService/helper';
 
 @injectable()
 export class Websocket {
   constructor(
-    @inject(TYPES.BoardHelper) private boardHelper: BoardHelper,
+    @inject(TYPES.BoardService) private boardService: BoardService,
     @inject(TYPES.StateHandler) private stateHandler: StateHandler,
     @inject(TYPES.PlayerMoveCalculator) private playerMoveCalculator: PlayerMoveCalculator
   ) {}
@@ -89,10 +90,10 @@ export class Websocket {
 
       case MessageTypes.READY: {
         const userId = ws.userId;
-        const room = this.boardHelper.getRoomByUserId(userId);
+        const room = this.boardService.getRoomByUserId(userId);
         room.playerMap[userId].ready = true;
 
-        if (!this.boardHelper.isRoomReady(room)) {
+        if (!isRoomReady(room)) {
           return;
         }
 
@@ -104,7 +105,7 @@ export class Websocket {
           room.playerIdToMove = playerIdToMove;
         }
 
-        const coordinatesPlayer = this.boardHelper.getPlayerCoordinates(playerIdToMove, room.board);
+        const coordinatesPlayer = getPlayerCoordinates(playerIdToMove, room.board);
         this.playerMoveCalculator.updatePlayerMoves(coordinatesPlayer, room.board);
 
         for (const clientId of clientIds) {
@@ -161,9 +162,9 @@ export class Websocket {
         const coordinates: Coordinates = parsedData.coordinates;
         const type: SquareType = parsedData.type;
         const userId = ws.userId;
-        const room = this.boardHelper.getRoomByUserId(userId);
+        const room = this.boardService.getRoomByUserId(userId);
 
-        if (!this.boardHelper.isRoomReady(room)) {
+        if (!isRoomReady(room)) {
           // probably send some message that player is cheating
           return;
         }
@@ -173,9 +174,9 @@ export class Websocket {
         const newPlayerToMove = _.find(clientIds, (id) => id !== userId);
         room.playerIdToMove = newPlayerToMove;
 
-        this.boardHelper.movePiece({ coordinates, type, userId });
+        this.boardService.movePiece({ coordinates, type, userId });
 
-        const coordinatesEnemy = this.boardHelper.getPlayerCoordinates(newPlayerToMove, room.board);
+        const coordinatesEnemy = getPlayerCoordinates(newPlayerToMove, room.board);
         this.playerMoveCalculator.updatePlayerMoves(coordinatesEnemy, room.board);
 
         for (const clientId of clientIds) {
