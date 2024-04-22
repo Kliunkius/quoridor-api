@@ -97,5 +97,36 @@ describe('BoardService unit tests', () => {
         boardService.movePiece({ type: SquareType.Player, coordinates: wallSquare, userId: USER_ID })
       ).toThrow();
     });
+
+    it('should place wall in a wall column', () => {
+      const verticalWallPosition: Coordinates = { y: 8, x: 9 };
+      boardService.movePiece({ type: SquareType.Wall, coordinates: verticalWallPosition, userId: USER_ID });
+
+      const targetedSquare = getSquareByCoordinates<SquareType.Wall>(verticalWallPosition, BOARD, SquareType.Wall);
+      expect(targetedSquare.isAvailable).toBe(false);
+      expect(targetedSquare.isWalkable).toBe(false);
+      expect(targetedSquare.isPlaced).toBe(true);
+
+      const blockedSquaresCoordinates: Coordinates[] = [{ y: verticalWallPosition.y - 2, x: verticalWallPosition.x }];
+
+      const unavailableSquaresCoordinates: Coordinates[] = [
+        { y: verticalWallPosition.y + 2, x: verticalWallPosition.x },
+        { y: verticalWallPosition.y - 1, x: verticalWallPosition.x - 1 }
+      ];
+
+      for (const squareCoordinates of blockedSquaresCoordinates) {
+        const square = getSquareByCoordinates<SquareType.Wall>(squareCoordinates, BOARD, SquareType.Wall);
+        expect(square.isAvailable).toBe(false);
+        expect(square.isWalkable).toBe(false);
+        expect(square.isPlaced).toBe(false);
+      }
+
+      for (const squareCoordinates of unavailableSquaresCoordinates) {
+        const square = getSquareByCoordinates<SquareType.Wall>(squareCoordinates, BOARD, SquareType.Wall);
+        expect(square.isAvailable).toBe(false);
+        expect(square.isWalkable).toBe(true);
+        expect(square.isPlaced).toBe(false);
+      }
+    });
   });
 });
