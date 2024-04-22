@@ -1,0 +1,30 @@
+O | O | O | O | O | O | O | O | O
+- + - + - + - + - + - + - + - + -
+O | O | O | O | O | O | O | O | O
+- + - + - + - + - + - + - + - + -
+O | O | O | O | O W O | O | O | O
+- + - + - + - + - + - + - + - + -
+O | O | O | O | 1 W O | O | O | O
+- + - + - + - + - + - + - + - + -
+O | O | O | O | 2 | O | O | O | O
+- + - + - + - + W + - + - + - + -
+O | O | O | O | O | O | O | O | O
+- + - + - + - + - + - + - + - + -
+O | O | O | O | O | O | O | O | O
+- + - + - + - + - + - + - + - + -
+O | O | O | O | O | O | O | O | O
+- + - + - + - + - + - + - + - + -
+O | O | O | O | O | O | O | O | O
+
+Definitions of board square values in this txt format:
+O = player type square, that is unoccupied.
+1 = player type square, that is occupied by player (calculations are done from his perspective).
+2 = player type square, that is occupied by enemy.
+| or - = wall type square, where there is no placed wall, wall can be placed and player can pass through. 
++ or U = wall type square, where there is no placed wall, wall cannot be placed and player can pass through. 
+W =  wall type square, where there is a placed wall that blocks player from passing through this square.
+
+Available moves in this state:
+Linear moves: up, left.
+Linear jumps: none.
+Diagonal moves: bottom right, bottom left.
