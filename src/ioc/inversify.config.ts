@@ -6,10 +6,16 @@ import { BoardService } from '../BoardService/boardService';
 import { PlayerMoveCalculator } from '../PlayerMoveCalculator/playerMoveCalculator';
 import { Websocket } from '../Websocket/websocket';
 
-const iocContainer = new Container();
-iocContainer.bind<StateHandler>(TYPES.StateHandler).to(StateHandler).inSingletonScope();
-iocContainer.bind<BoardService>(TYPES.BoardService).to(BoardService);
-iocContainer.bind<PlayerMoveCalculator>(TYPES.PlayerMoveCalculator).to(PlayerMoveCalculator);
-iocContainer.bind<Websocket>(TYPES.Websocket).to(Websocket);
+const createIocContainer = () => {
+  const container = new Container();
+  container.bind<StateHandler>(TYPES.StateHandler).to(StateHandler).inSingletonScope();
+  container.bind<BoardService>(TYPES.BoardService).to(BoardService);
+  container.bind<PlayerMoveCalculator>(TYPES.PlayerMoveCalculator).to(PlayerMoveCalculator);
+  container.bind<Websocket>(TYPES.Websocket).to(Websocket);
 
-export { iocContainer };
+  return container;
+};
+
+const iocContainer = createIocContainer();
+
+export { iocContainer, createIocContainer };

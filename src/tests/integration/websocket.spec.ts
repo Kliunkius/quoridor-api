@@ -1,105 +1,122 @@
 import 'reflect-metadata';
 import { WebSocket, WebSocketServer } from 'ws';
-import { mock } from 'jest-mock-extended';
 
 import { Websocket } from '../../Websocket/websocket';
-import { BoardService } from '../../BoardService/boardService';
-import { PlayerMoveCalculator } from '../../PlayerMoveCalculator/playerMoveCalculator';
-import { StateHandler } from '../../StateHandler/stateHandler';
 import { Message, MessageTypes } from '../../Websocket/types';
+import { createIocContainer } from '../../ioc/inversify.config';
+import { TYPES } from '../../ioc/types';
+import { StateHandler } from '../../StateHandler/stateHandler';
+import { createNewBoard } from '../../BoardService/helper';
+import { addConnection, addPlayerToRoom } from './helper';
+
+const SERVER_PORT = 8080;
+const SERVER_URL = `ws://localhost:${SERVER_PORT}`;
 
 describe('WebSocket Server Integration Tests', () => {
-  let websocket: Websocket;
+  const testContainer = createIocContainer();
+  const websocket = testContainer.get<Websocket>(TYPES.Websocket);
+  const stateHandler = testContainer.get<StateHandler>(TYPES.StateHandler);
   let server: WebSocketServer;
-  const stateHandlerMock = mock<StateHandler>();
-  const boardServiceMock = mock<BoardService>();
-  const playerMoveCalculatorMock = mock<PlayerMoveCalculator>();
 
   beforeEach(() => {
-    websocket = new Websocket(boardServiceMock, stateHandlerMock, playerMoveCalculatorMock);
     server = new WebSocketServer({ port: 8080 });
     websocket.configureWebSocketServer(server);
   });
 
   afterEach(() => {
     server.close();
+    stateHandler.clearState();
   });
 
-  it('should echo back messages', async () => {
-    const wsPromise = (): Promise<WebSocket> => {
-      return new Promise((resolve, reject) => {
-        const ws = new WebSocket('ws://localhost:8080');
+  describe('#handleMessage', () => {
+    describe('JOIN_ROOM', () => {
+      it('should notify user if room does not exist', async () => {
+        const wsPromise = (): Promise<WebSocket> => {
+          return new Promise((resolve, reject) => {
+            const ws = new WebSocket(SERVER_URL);
 
-        ws.on('open', () => {
-          resolve(ws);
-        });
+            ws.on('open', () => {
+              resolve(ws);
+            });
+          });
+        };
+
+        const ws = await wsPromise();
+
+        let receivedMessage = false;
+
+        const messagePromise = (): Promise<void> => {
+          return new Promise((resolve, reject) => {
+            ws.on('message', (data: any) => {
+              const parsedMessage: Message = JSON.parse(data);
+
+              switch (parsedMessage.type) {
+                case MessageTypes.ROOM_DELETED: {
+                  receivedMessage = true;
+                  resolve();
+                }
+              }
+            });
+          });
+        };
+
+        ws.send(websocket.formatMessage(MessageTypes.JOIN_ROOM, {}));
+
+        await messagePromise();
+
+        ws.close();
+
+        expect(receivedMessage).toBe(true);
       });
-    };
 
-    const ws = await wsPromise();
+      it('should notify user if room does not exist', async () => {
+        const roomCode = 'abc';
 
-    let called = 2;
+        const newBoard = createNewBoard();
+        stateHandler.setRoom(roomCode, { board: newBoard, playerMap: {}, playerIdToMove: '' });
 
-    const messagePromise = (): Promise<void> => {
-      return new Promise((resolve, reject) => {
-        ws.on('message', (data: any) => {
-          const parsedMessage: Message = JSON.parse(data);
+        const otherPlayerWs = await addPlayerToRoom(SERVER_URL, roomCode, websocket);
 
-          switch (parsedMessage.type) {
-            case MessageTypes.ROOM_DELETED: {
-              called = 5;
-              resolve();
-            }
+        const playerWs = await addConnection(SERVER_URL);
+
+        let receivedMessage = false;
+
+        const messagePromise = (): Promise<void> => {
+          return new Promise((resolve, reject) => {
+            playerWs.on('message', (data: any) => {
+              const parsedMessage: Message = JSON.parse(data);
+
+              switch (parsedMessage.type) {
+                case MessageTypes.JOIN_ROOM: {
+                  receivedMessage = true;
+                  playerWs.userId = parsedMessage.data.userId;
+                  resolve(parsedMessage.data);
+                }
+              }
+            });
+          });
+        };
+
+        playerWs.send(websocket.formatMessage(MessageTypes.JOIN_ROOM, { roomCode }));
+
+        const data = await messagePromise();
+
+        const expectedData = {
+          userId: playerWs.userId,
+          yourName: playerWs.userId,
+          board: stateHandler.getRoom(roomCode).board,
+          otherPlayer: {
+            ready: false,
+            name: otherPlayerWs.userId
           }
-        });
+        };
+
+        playerWs.close();
+        otherPlayerWs.close();
+
+        expect(receivedMessage).toBe(true);
+        expect(data).toEqual(expectedData);
       });
-    };
-
-    ws.send(websocket.formatMessage(MessageTypes.JOIN_ROOM, {}));
-
-    await messagePromise();
-
-    ws.close();
-
-    expect(called).toBe(5);
-  });
-
-  it('should echo back messages 2', async () => {
-    const wsPromise = (): Promise<WebSocket> => {
-      return new Promise((resolve, reject) => {
-        const ws = new WebSocket('ws://localhost:8080');
-
-        ws.on('open', () => {
-          resolve(ws);
-        });
-      });
-    };
-
-    const ws = await wsPromise();
-
-    let called = 3;
-
-    const messagePromise = (): Promise<void> => {
-      return new Promise((resolve, reject) => {
-        ws.on('message', (data: any) => {
-          const parsedMessage: Message = JSON.parse(data);
-
-          switch (parsedMessage.type) {
-            case MessageTypes.ROOM_DELETED: {
-              called = 4;
-              resolve();
-            }
-          }
-        });
-      });
-    };
-
-    ws.send(websocket.formatMessage(MessageTypes.JOIN_ROOM, {}));
-
-    await messagePromise();
-
-    ws.close();
-
-    expect(called).toBe(4);
+    });
   });
 });
