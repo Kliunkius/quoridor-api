@@ -30,4 +30,9 @@ export class StateHandler {
   deleteUser(userId: string) {
     delete this.usersMap[userId];
   }
+
+  clearState() {
+    this.roomsMap = {};
+    this.usersMap = {};
+  }
 }
