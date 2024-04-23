@@ -94,6 +94,7 @@ export class Websocket {
         room.playerMap[userId].ready = true;
 
         if (!isRoomReady(room)) {
+          ws.send(this.formatMessage(MessageTypes.READY, { yourTurn: false, board: room.board }));
           return;
         }
 

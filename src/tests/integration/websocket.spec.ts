@@ -7,7 +7,7 @@ import { createIocContainer } from '../../ioc/inversify.config';
 import { TYPES } from '../../ioc/types';
 import { StateHandler } from '../../StateHandler/stateHandler';
 import { createNewBoard } from '../../BoardService/helper';
-import { addConnection, addPlayerToRoom } from './helper';
+import { addConnection, addPlayerToRoom, readyPlayer, xor } from './helper';
 
 const SERVER_PORT = 8080;
 const SERVER_URL = `ws://localhost:${SERVER_PORT}`;
@@ -19,29 +19,19 @@ describe('WebSocket Server Integration Tests', () => {
   let server: WebSocketServer;
 
   beforeEach(() => {
+    stateHandler.clearState();
     server = new WebSocketServer({ port: 8080 });
     websocket.configureWebSocketServer(server);
   });
 
   afterEach(() => {
     server.close();
-    stateHandler.clearState();
   });
 
   describe('#handleMessage', () => {
     describe('JOIN_ROOM', () => {
       it('should notify user if room does not exist', async () => {
-        const wsPromise = (): Promise<WebSocket> => {
-          return new Promise((resolve, reject) => {
-            const ws = new WebSocket(SERVER_URL);
-
-            ws.on('open', () => {
-              resolve(ws);
-            });
-          });
-        };
-
-        const ws = await wsPromise();
+        const ws = await addConnection(SERVER_URL);
 
         let receivedMessage = false;
 
@@ -116,6 +106,26 @@ describe('WebSocket Server Integration Tests', () => {
 
         expect(receivedMessage).toBe(true);
         expect(data).toEqual(expectedData);
+      });
+    });
+
+    describe('READY', () => {
+      it('should make one of the players go first', async () => {
+        const roomCode = 'abc';
+
+        const newBoard = createNewBoard();
+        stateHandler.setRoom(roomCode, { board: newBoard, playerMap: {}, playerIdToMove: '' });
+
+        const firstPlayer = await addPlayerToRoom(SERVER_URL, roomCode, websocket);
+        const secondPlayer = await addPlayerToRoom(SERVER_URL, roomCode, websocket);
+
+        await readyPlayer(firstPlayer, websocket);
+        await readyPlayer(secondPlayer, websocket);
+
+        firstPlayer.close();
+        secondPlayer.close();
+
+        expect(xor(firstPlayer.yourTurn, secondPlayer.yourTurn)).toBe(true);
       });
     });
   });
