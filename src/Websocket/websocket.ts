@@ -6,7 +6,7 @@ import { TYPES } from '../ioc/types';
 import { BoardService } from '../BoardService/boardService';
 import { Message, MessageTypes } from './types';
 import { StateHandler } from '../StateHandler/stateHandler';
-import { Coordinates, ExtendedWebSocket, SquareType } from '../StateHandler/types';
+import { Coordinates, ExtendedWebSocket, Role, SquareType } from '../StateHandler/types';
 import { MAX_PLAYER_COUNT, PLAYER1_STARTING_POSITION, PLAYER2_STARTING_POSITION } from '../BoardService/types';
 import { PlayerMoveCalculator } from '../PlayerMoveCalculator/playerMoveCalculator';
 import { getPlayerCoordinates, isRoomReady } from '../BoardService/helper';
@@ -48,13 +48,15 @@ export class Websocket {
           return;
         }
 
-        const coordinates = _.isEmpty(room.playerMap) ? PLAYER1_STARTING_POSITION : PLAYER2_STARTING_POSITION;
+        const role = _.isEmpty(room.playerMap) ? Role.PLAYER1 : Role.PLAYER2;
+
+        const coordinates = role === Role.PLAYER1 ? PLAYER1_STARTING_POSITION : PLAYER2_STARTING_POSITION;
 
         // add player to the users map
         this.stateHandler.setUser(userId, { ws, userId, roomCode });
 
         // add player to the room
-        room.playerMap[userId] = { coordinates, ready: false, name: userId };
+        room.playerMap[userId] = { coordinates, ready: false, name: userId, role };
 
         // user gets placed on the starting square
         const square = room.board[coordinates.y].squares[coordinates.x];
@@ -176,6 +178,8 @@ export class Websocket {
         room.playerIdToMove = newPlayerToMove;
 
         this.boardService.movePiece({ coordinates, type, userId });
+
+        this.boardService.updateAvailableWallPlacements(room);
 
         const coordinatesEnemy = getPlayerCoordinates(newPlayerToMove, room.board);
         this.playerMoveCalculator.updatePlayerMoves(coordinatesEnemy, room.board);

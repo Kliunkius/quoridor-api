@@ -7,13 +7,15 @@ import { Coordinates, ExtendedWebSocket, SquareType } from '../../StateHandler/t
 import { getMockedRoom } from '../testHelper';
 import { getSquareByCoordinates } from '../../BoardService/helper';
 import { PLAYER1_STARTING_POSITION } from '../../BoardService/types';
+import { PlayerMoveCalculator } from '../../PlayerMoveCalculator/playerMoveCalculator';
 
 describe('BoardService unit tests', () => {
   let boardService: BoardService;
   const stateHandlerMock = mock<StateHandler>();
+  const playerMoveCalculatorMock = mock<PlayerMoveCalculator>();
 
   beforeEach(() => {
-    boardService = new BoardService(stateHandlerMock);
+    boardService = new BoardService(stateHandlerMock, playerMoveCalculatorMock);
   });
 
   describe('#movePiece', () => {

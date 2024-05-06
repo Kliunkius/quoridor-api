@@ -5,6 +5,9 @@ export type Move = { type: SquareType; coordinates: Coordinates; userId: string 
 export const PLAYER1_STARTING_POSITION: Coordinates = { x: 8, y: 16 };
 export const PLAYER2_STARTING_POSITION: Coordinates = { x: 8, y: 0 };
 
+export const PLAYER1_FINISH_ROW = 0;
+export const PLAYER2_FINISH_ROW = 16;
+
 export const MAX_PLAYER_COUNT = 2;
 
 // the board is 17x17 because we count walls as seperate squares
