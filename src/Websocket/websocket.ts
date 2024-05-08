@@ -229,6 +229,7 @@ export class Websocket {
 
       ws.on('close', (code, reason) => {
         this.handleClose(ws);
+        // eslint-disable-next-line
         console.log(`WebSocket closed with code: ${code} and reason: ${reason.toString()}`);
       });
     });
