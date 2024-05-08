@@ -2,7 +2,7 @@ import fs from 'fs';
 import readline from 'readline';
 import { createNewBoard, getSquareByCoordinates } from '../BoardService/helper';
 import { BOARD_WIDTH, PLAYER1_STARTING_POSITION, PLAYER2_STARTING_POSITION } from '../BoardService/types';
-import { Board, BoardRow, BoardSquare, Player, Room, RowTypes, SquareType } from '../StateHandler/types';
+import { Board, BoardRow, BoardSquare, Player, Role, Room, RowTypes, SquareType } from '../StateHandler/types';
 
 export const USER_ID1 = 'user-id1';
 export const USER_ID2 = 'user-id2';
@@ -12,12 +12,14 @@ export const getMockedRoom = (): Room => {
     [USER_ID1]: {
       coordinates: PLAYER1_STARTING_POSITION,
       ready: true,
-      name: 'player1'
+      name: 'player1',
+      role: Role.PLAYER1
     },
     [USER_ID2]: {
       coordinates: PLAYER2_STARTING_POSITION,
       ready: true,
-      name: 'player1'
+      name: 'player1',
+      role: Role.PLAYER2
     }
   };
   const board: Board = createNewBoard();
