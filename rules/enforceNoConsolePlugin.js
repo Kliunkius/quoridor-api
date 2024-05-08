@@ -1,2 +1,2 @@
-import enforceNoConsole from './enforceNoConsole.js';
-export default { rules: { 'enforce-no-console': enforceNoConsole } };
+const enforceNoConsole = require('./enforceNoConsole.js');
+module.exports = { rules: { 'enforce-no-console': enforceNoConsole } };

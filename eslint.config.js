@@ -1,11 +1,11 @@
 // @ts-check
 
-import eslint from '@eslint/js';
-import tseslint from 'typescript-eslint';
+const eslint = require('@eslint/js');
+const tseslint = require('typescript-eslint');
 
-import enforceNoConsolePlugin from './rules/enforceNoConsolePlugin.js';
+const enforceNoConsolePlugin = require('./rules/enforceNoConsolePlugin.js');
 
-export default [
+module.exports = [
   {
     plugins: {
       console: enforceNoConsolePlugin
