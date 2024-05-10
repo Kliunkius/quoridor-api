@@ -3,6 +3,7 @@ import { WebSocket } from 'ws';
 export type RoomsMap = Record<string, Room>;
 
 export type Room = {
+  // key is playerId
   playerMap: Record<string, Player>;
   playerIdToMove: string;
   board: Board;
@@ -12,7 +13,13 @@ export type Player = {
   coordinates: Coordinates;
   ready: boolean;
   name: string;
+  role: Role;
 };
+
+export enum Role {
+  PLAYER1,
+  PLAYER2
+}
 
 export type Coordinates = {
   // coordinateX

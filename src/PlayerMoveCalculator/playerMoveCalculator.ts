@@ -1,6 +1,6 @@
 import { injectable } from 'inversify';
 import { Board, Coordinates, SquareType } from '../StateHandler/types';
-import { LAST_ROW_INDEX } from './types';
+import { DISTANCE_BETWEEN_PLAYER_SQUARES, LAST_ROW_INDEX } from './types';
 import { getSquareByCoordinates } from '../BoardService/helper';
 import { coordinateOffsetSquare } from './helper';
 
@@ -157,7 +157,7 @@ export class PlayerMoveCalculator {
 
   updatePlayerMoves(coordinatesPlayer: Coordinates, board: Board) {
     this.resetMoves(board);
-    const DISTANCE_BETWEEN_PLAYER_SQUARES = 2;
+
     const JUMP_DISTANCE_FROM_TARGET_TO_PLAYER = DISTANCE_BETWEEN_PLAYER_SQUARES * 2;
 
     const coordinatesOfAllLinearMoves = [
@@ -216,5 +216,36 @@ export class PlayerMoveCalculator {
         board[coordinatesCurrent.y].squares[coordinatesCurrent.x].isAvailable = true;
       }
     }
+  }
+
+  getAvailableSquaresForPath(coordinatesPlayer: Coordinates, board: Board) {
+    const availableSquares: Coordinates[] = [];
+
+    const DISTANCE_BETWEEN_PLAYER_SQUARES = 2;
+
+    const coordinatesOfAllLinearMoves: Coordinates[] = [
+      { y: coordinatesPlayer.y - DISTANCE_BETWEEN_PLAYER_SQUARES, x: coordinatesPlayer.x },
+      { y: coordinatesPlayer.y + DISTANCE_BETWEEN_PLAYER_SQUARES, x: coordinatesPlayer.x },
+      { y: coordinatesPlayer.y, x: coordinatesPlayer.x - DISTANCE_BETWEEN_PLAYER_SQUARES },
+      { y: coordinatesPlayer.y, x: coordinatesPlayer.x + DISTANCE_BETWEEN_PLAYER_SQUARES }
+    ];
+
+    for (const coordinatesCurrent of coordinatesOfAllLinearMoves) {
+      if (!this.isCoordinateWithinBoard(coordinatesCurrent)) {
+        continue;
+      }
+
+      const coordinatesWallNearPlayer: Coordinates = {
+        y: coordinateOffsetSquare(coordinatesCurrent.y, coordinatesPlayer.y, 1),
+        x: coordinateOffsetSquare(coordinatesCurrent.x, coordinatesPlayer.x, 1)
+      };
+      const wallNearPlayer = getSquareByCoordinates<SquareType.Wall>(coordinatesWallNearPlayer, board, SquareType.Wall);
+
+      if (wallNearPlayer.isWalkable) {
+        availableSquares.push(coordinatesCurrent);
+      }
+    }
+
+    return availableSquares;
   }
 }

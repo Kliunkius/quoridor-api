@@ -59,7 +59,7 @@ describe('WebSocket Server Integration Tests', () => {
         expect(receivedMessage).toBe(true);
       });
 
-      it('should notify user if room does not exist', async () => {
+      it('should send room data to user when they join room', async () => {
         const roomCode = 'abc';
 
         const newBoard = createNewBoard();
