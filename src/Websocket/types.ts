@@ -3,7 +3,8 @@ export enum MessageTypes {
   RECONNECT,
   MOVE,
   ROOM_DELETED,
-  READY
+  READY,
+  FINISH
 }
 
 export type Message = {

@@ -172,12 +172,21 @@ export class Websocket {
           return;
         }
 
+        this.boardService.movePiece({ coordinates, type, userId });
+
         const clientIds = Object.keys(room.playerMap);
+
+        if (this.boardService.hasPlayerWon({ coordinates, type, userId })) {
+          for (const clientId of clientIds) {
+            const client = this.stateHandler.getUser(clientId);
+            client.ws.send(this.formatMessage(MessageTypes.FINISH, { board: room.board, win: clientId === userId }));
+          }
+
+          return;
+        }
 
         const newPlayerToMove = _.find(clientIds, (id) => id !== userId);
         room.playerIdToMove = newPlayerToMove;
-
-        this.boardService.movePiece({ coordinates, type, userId });
 
         this.boardService.updateAvailableWallPlacements(room);
 

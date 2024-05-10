@@ -173,6 +173,20 @@ export class BoardService {
     }
   }
 
+  hasPlayerWon({ type, coordinates, userId }: Move) {
+    if (type === SquareType.Wall) {
+      return false;
+    }
+
+    const room = this.getRoomByUserId(userId);
+    const player = room.playerMap[userId];
+
+    return (
+      (player.role === Role.PLAYER1 && coordinates.y === PLAYER1_FINISH_ROW) ||
+      (player.role === Role.PLAYER2 && coordinates.y === PLAYER2_FINISH_ROW)
+    );
+  }
+
   movePiece({ type, coordinates, userId }: Move) {
     if (type === SquareType.Player) {
       const room = this.getRoomByUserId(userId);
